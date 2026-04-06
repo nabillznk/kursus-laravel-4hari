@@ -1,44 +1,46 @@
-# Rujukan Pantas Blade
+# Rujukan Pantas Blade — Sistem Zakat
 
 ## Memapar Data
 
 | Sintaks | Tujuan | Contoh |
 |---------|--------|--------|
-| `{{ $var }}` | Papar data (HTML escaped) | `{{ $post->title }}` |
-| `{!! $var !!}` | Papar HTML mentah (tidak escaped) | `{!! $post->body !!}` |
-| `{{ $var ?? 'lalai' }}` | Papar dengan nilai lalai | `{{ $nama ?? 'Tetamu' }}` |
+| `{{ $var }}` | Papar data (HTML escaped) | `{{ $pembayar->nama }}` |
+| `{!! $var !!}` | Papar HTML mentah (tidak escaped) | `{!! $penerangan !!}` |
+| `{{ $var ?? 'lalai' }}` | Papar dengan nilai lalai | `{{ $pembayar->email ?? 'Tiada' }}` |
 
 ## Arahan Kawalan
 
 ```blade
 {{-- Bersyarat --}}
-@if($posts->count() > 0)
-    <p>Ada {{ $posts->count() }} catatan.</p>
-@elseif($posts->count() == 0)
-    <p>Tiada catatan.</p>
+@if($pembayars->count() > 0)
+    <p>{{ $pembayars->count() }} pembayar berdaftar.</p>
 @else
-    <p>Ralat.</p>
+    <p>Tiada pembayar dijumpai.</p>
 @endif
 
-{{-- Gelung --}}
-@foreach($posts as $post)
-    <h2>{{ $post->title }}</h2>
+{{-- Gelung senarai pembayar --}}
+@foreach($pembayars as $pembayar)
+    <tr>
+        <td>{{ $pembayar->nama }}</td>
+        <td>{{ $pembayar->no_ic }}</td>
+        <td>{{ $pembayar->no_tel }}</td>
+    </tr>
 @endforeach
 
-{{-- Gelung dengan kosong --}}
-@forelse($posts as $post)
-    <h2>{{ $post->title }}</h2>
+{{-- Gelung dengan keadaan kosong --}}
+@forelse($pembayarans as $bayar)
+    <p>Resit: {{ $bayar->no_resit }} — RM {{ $bayar->jumlah }}</p>
 @empty
-    <p>Tiada catatan dijumpai.</p>
+    <p>Tiada rekod pembayaran dijumpai.</p>
 @endforelse
 
-{{-- Semak pengesahan --}}
+{{-- Semak pengesahan kakitangan --}}
 @auth
     <p>Selamat datang, {{ auth()->user()->name }}!</p>
 @endauth
 
 @guest
-    <p>Sila log masuk.</p>
+    <p>Sila log masuk untuk mengakses sistem.</p>
 @endguest
 ```
 
@@ -48,37 +50,55 @@
 {{-- Layout induk: layouts/app.blade.php --}}
 <html>
 <body>
+    <nav>Pusat Zakat Negeri Kedah</nav>
     @yield('content')
 </body>
 </html>
 
-{{-- Halaman anak --}}
+{{-- Halaman anak: pembayar/index.blade.php --}}
 @extends('layouts.app')
 
+@section('title', 'Senarai Pembayar')
+
 @section('content')
-    <h1>Kandungan halaman</h1>
+    <h1>Senarai Pembayar Zakat</h1>
+    {{-- kandungan --}}
 @endsection
 ```
 
-## Borang
+## Borang Pendaftaran Pembayar
 
 ```blade
-<form action="{{ route('posts.store') }}" method="POST">
+<form action="{{ route('pembayar.store') }}" method="POST">
     @csrf  {{-- Token CSRF — WAJIB untuk semua borang POST --}}
 
-    <input type="text" name="title" value="{{ old('title') }}">
-    @error('title')
+    <input type="text" name="nama" value="{{ old('nama') }}">
+    @error('nama')
         <span class="error">{{ $message }}</span>
     @enderror
 
-    <button type="submit">Simpan</button>
+    <input type="text" name="no_ic" value="{{ old('no_ic') }}"
+           placeholder="Contoh: 850101145678">
+    @error('no_ic')
+        <span class="error">{{ $message }}</span>
+    @enderror
+
+    <button type="submit">Daftar Pembayar</button>
 </form>
 
-{{-- Untuk PUT/PATCH/DELETE --}}
-<form action="{{ route('posts.update', $post) }}" method="POST">
+{{-- Borang kemaskini (PUT) --}}
+<form action="{{ route('pembayar.update', $pembayar) }}" method="POST">
     @csrf
     @method('PUT')
-    ...
+    <input type="text" name="nama" value="{{ old('nama', $pembayar->nama) }}">
+    <button type="submit">Kemaskini</button>
+</form>
+
+{{-- Borang padam (DELETE) --}}
+<form action="{{ route('pembayar.destroy', $pembayar) }}" method="POST">
+    @csrf
+    @method('DELETE')
+    <button type="submit" onclick="return confirm('Pasti padam?')">Padam</button>
 </form>
 ```
 
@@ -87,5 +107,32 @@
 ```blade
 @include('partials.navbar')
 @include('partials.footer')
-@include('partials.card', ['post' => $post])
+@include('pembayar._form', ['pembayar' => $pembayar])
+```
+
+## Arahan Blade Lain
+
+```blade
+{{-- Papar ralat pengesahan --}}
+@if($errors->any())
+    <ul>
+        @foreach($errors->all() as $ralat)
+            <li>{{ $ralat }}</li>
+        @endforeach
+    </ul>
+@endif
+
+{{-- Asset URL --}}
+<link rel="stylesheet" href="{{ asset('css/app.css') }}">
+<img src="{{ asset('images/logo-zakat.png') }}">
+
+{{-- URL bernama --}}
+<a href="{{ route('pembayar.show', $pembayar) }}">Lihat</a>
+<a href="{{ route('pembayar.edit', $pembayar) }}">Edit</a>
+
+{{-- Gelung dengan $loop --}}
+@foreach($pembayars as $p)
+    {{ $loop->iteration }}. {{ $p->nama }}
+    @if($loop->last) — Akhir senarai @endif
+@endforeach
 ```

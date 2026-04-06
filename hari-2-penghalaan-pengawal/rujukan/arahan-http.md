@@ -1,27 +1,35 @@
-# Rujukan Kaedah HTTP
+# Rujukan Kaedah HTTP — Sistem Zakat
 
 ## Kaedah HTTP dalam Laravel
 
-| Kaedah | Tujuan | Route | Contoh |
-|--------|--------|-------|--------|
-| **GET** | Dapatkan/papar data | `Route::get()` | Papar halaman, senarai data |
-| **POST** | Hantar data baharu | `Route::post()` | Hantar borang, cipta data |
-| **PUT/PATCH** | Kemas kini data | `Route::put()` | Kemas kini profil, edit catatan |
-| **DELETE** | Padam data | `Route::delete()` | Padam catatan, buang akaun |
+| Kaedah | Tujuan | Route | Contoh Sistem Zakat |
+|--------|--------|-------|---------------------|
+| **GET** | Dapatkan/papar data | `Route::get()` | Senarai pembayar, borang |
+| **POST** | Hantar data baharu | `Route::post()` | Daftar pembayar baru |
+| **PUT/PATCH** | Kemas kini data | `Route::put()` | Kemaskini maklumat IC |
+| **DELETE** | Padam data | `Route::delete()` | Padam rekod pembayar |
 
 ## Resource Routes (7 Laluan Automatik)
 
-Apabila anda menggunakan `Route::resource('posts', PostController::class)`:
+Apabila anda menggunakan `Route::resource('pembayar', PembayarController::class)`:
 
 | Kaedah | URI | Action | Nama Laluan |
 |--------|-----|--------|-------------|
-| GET | `/posts` | index | posts.index |
-| GET | `/posts/create` | create | posts.create |
-| POST | `/posts` | store | posts.store |
-| GET | `/posts/{post}` | show | posts.show |
-| GET | `/posts/{post}/edit` | edit | posts.edit |
-| PUT/PATCH | `/posts/{post}` | update | posts.update |
-| DELETE | `/posts/{post}` | destroy | posts.destroy |
+| GET | `/pembayar` | index | pembayar.index |
+| GET | `/pembayar/create` | create | pembayar.create |
+| POST | `/pembayar` | store | pembayar.store |
+| GET | `/pembayar/{pembayar}` | show | pembayar.show |
+| GET | `/pembayar/{pembayar}/edit` | edit | pembayar.edit |
+| PUT/PATCH | `/pembayar/{pembayar}` | update | pembayar.update |
+| DELETE | `/pembayar/{pembayar}` | destroy | pembayar.destroy |
+
+## Semua Resource Routes Sistem Zakat
+
+```php
+Route::resource('pembayar', PembayarController::class);
+Route::resource('pembayaran', PembayaranController::class);
+Route::resource('jenis-zakat', JenisZakatController::class);
+```
 
 ## Arahan Berguna
 
@@ -29,8 +37,11 @@ Apabila anda menggunakan `Route::resource('posts', PostController::class)`:
 # Lihat semua laluan berdaftar
 php artisan route:list
 
-# Lihat laluan untuk satu pengawal sahaja
-php artisan route:list --name=posts
+# Lihat laluan untuk pembayar sahaja
+php artisan route:list --name=pembayar
+
+# Lihat laluan untuk pembayaran
+php artisan route:list --name=pembayaran
 
 # Bersihkan cache laluan
 php artisan route:clear

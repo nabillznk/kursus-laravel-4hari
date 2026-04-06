@@ -1,4 +1,4 @@
-# Rujukan Pantas Arahan Artisan
+# Rujukan Pantas Arahan Artisan — Sistem Zakat
 
 ## Pelayan & Umum
 
@@ -9,18 +9,23 @@
 | `php artisan list` | Senarai semua arahan yang tersedia |
 | `php artisan help migrate` | Bantuan untuk arahan tertentu |
 
-## Cipta Fail (make:)
+## Cipta Fail (make:) — Sistem Zakat
 
 | Arahan | Cipta |
 |--------|-------|
-| `php artisan make:model Post -mfs` | Model + Migrasi + Factory + Seeder |
-| `php artisan make:controller PostController --resource` | Pengawal dengan 7 method CRUD |
-| `php artisan make:controller Api/PostController --api` | Pengawal API (tanpa create/edit) |
-| `php artisan make:migration create_posts_table` | Fail migrasi baharu |
-| `php artisan make:middleware CheckAge` | Middleware baharu |
-| `php artisan make:request StorePostRequest` | Form Request untuk validasi |
-| `php artisan make:seeder PostSeeder` | Seeder baharu |
-| `php artisan make:factory PostFactory` | Factory baharu |
+| `php artisan make:model Pembayar -mfs` | Model + Migrasi + Factory + Seeder |
+| `php artisan make:model JenisZakat -m` | Model + Migrasi |
+| `php artisan make:model Pembayaran -m` | Model + Migrasi |
+| `php artisan make:controller PembayarController --resource` | Pengawal CRUD (7 method) |
+| `php artisan make:controller PembayaranController --resource` | Pengawal CRUD pembayaran |
+| `php artisan make:controller DashboardController` | Pengawal dashboard |
+| `php artisan make:controller Api/PembayarApiController --api` | Pengawal API (5 method) |
+| `php artisan make:migration create_pembayars_table` | Migrasi jadual pembayar |
+| `php artisan make:migration create_jenis_zakats_table` | Migrasi jadual jenis zakat |
+| `php artisan make:migration create_pembayarans_table` | Migrasi jadual pembayaran |
+| `php artisan make:middleware CekKakitangan` | Middleware tersuai |
+| `php artisan make:request StorePembayarRequest` | Form Request validasi |
+| `php artisan make:seeder JenisZakatSeeder` | Seeder jenis zakat |
 
 ## Pangkalan Data
 
@@ -32,7 +37,7 @@
 | `php artisan migrate:fresh` | Padam semua jadual & jalankan semula |
 | `php artisan migrate:status` | Semak status migrasi |
 | `php artisan db:seed` | Jalankan semua seeder |
-| `php artisan db:seed --class=PostSeeder` | Jalankan seeder tertentu |
+| `php artisan db:seed --class=JenisZakatSeeder` | Jalankan seeder jenis zakat |
 | `php artisan migrate:fresh --seed` | Reset DB & seed |
 
 ## Laluan
@@ -40,7 +45,8 @@
 | Arahan | Tujuan |
 |--------|--------|
 | `php artisan route:list` | Senarai semua laluan |
-| `php artisan route:list --name=posts` | Tapis mengikut nama |
+| `php artisan route:list --name=pembayar` | Laluan pembayar sahaja |
+| `php artisan route:list --name=pembayaran` | Laluan pembayaran sahaja |
 | `php artisan route:cache` | Cache laluan (production) |
 | `php artisan route:clear` | Bersihkan cache laluan |
 
@@ -62,3 +68,24 @@
 | `composer require laravel/breeze --dev` | Pasang Breeze |
 | `php artisan breeze:install blade` | Pasang dengan Blade |
 | `npm install && npm run build` | Bina aset frontend |
+
+## Tinker — Uji Cepat
+
+```bash
+php artisan tinker
+
+# Cipta pembayar
+>>> App\Models\Pembayar::create(['nama'=>'Ahmad', 'no_ic'=>'850101145678', 'alamat'=>'Alor Setar', 'no_tel'=>'0124567890']);
+
+# Kira jumlah pembayar
+>>> App\Models\Pembayar::count();
+
+# Cari pembayar
+>>> App\Models\Pembayar::where('nama', 'like', '%Ahmad%')->get();
+
+# Jumlah kutipan zakat (sah)
+>>> App\Models\Pembayaran::where('status', 'sah')->sum('jumlah');
+
+# Pembayaran terkini
+>>> App\Models\Pembayaran::with('pembayar', 'jenisZakat')->latest('tarikh_bayar')->take(5)->get();
+```

@@ -1,4 +1,8 @@
-# Hari 1: Persediaan Persekitaran Pembangunan
+# Hari 1: Persediaan Persekitaran & Projek Sistem Zakat
+
+**Kursus Laravel 4 Hari | Pusat Zakat Negeri Kedah**
+
+---
 
 ## Objektif Pembelajaran
 
@@ -7,8 +11,51 @@ Pada akhir Hari 1, anda akan dapat:
 - Memahami apa itu Laravel dan kelebihannya
 - Memasang semua perisian yang diperlukan pada Windows
 - Mengkonfigurasi Laragon, MySQL, dan VS Code
-- Mencipta projek Laravel pertama anda
+- Mencipta projek Laravel `sistem-zakat`
+- Mencipta pangkalan data `zakat_kedah`
 - Memahami struktur direktori Laravel
+
+---
+
+## Pengenalan Projek: Sistem Pengurusan Zakat
+
+Sepanjang 4 hari kursus ini, kita akan membina **Sistem Pengurusan Zakat** untuk **Pusat Zakat Negeri Kedah**. Sistem ini akan:
+
+- **Mendaftar pembayar zakat** — Simpan maklumat pembayar (nama, IC, alamat, pendapatan)
+- **Merekod pembayaran** — Rekod setiap transaksi zakat dengan resit
+- **Mengurus jenis zakat** — Zakat Fitrah, Zakat Pendapatan, Zakat Perniagaan, dll.
+- **Menjana laporan** — Jumlah kutipan mengikut jenis dan tempoh
+- **Kawalan akses** — Log masuk kakitangan Pusat Zakat sahaja
+
+### Struktur Data Sistem
+
+```
+┌─────────────────┐       ┌─────────────────┐
+│   Pembayar      │       │   Jenis Zakat   │
+├─────────────────┤       ├─────────────────┤
+│ nama            │       │ nama            │
+│ no_ic           │       │ kadar           │
+│ alamat          │  1──M │ penerangan      │
+│ no_tel          │◄──────│ is_aktif        │
+│ email           │       └─────────────────┘
+│ pekerjaan       │              │
+│ pendapatan      │              │ 1
+└────────┬────────┘              │
+         │ 1                     │
+         │                       │
+         │ M          M          │
+    ┌────┴───────────────────────┴─┐
+    │       Pembayaran             │
+    ├──────────────────────────────┤
+    │ pembayar_id (FK)             │
+    │ jenis_zakat_id (FK)          │
+    │ jumlah                       │
+    │ tarikh_bayar                 │
+    │ cara_bayar                   │
+    │ no_resit                     │
+    │ status                       │
+    └──────────────────────────────┘
+```
 
 ---
 
@@ -18,32 +65,33 @@ Pada akhir Hari 1, anda akan dapat:
 
 Laravel ialah rangka kerja (framework) PHP sumber terbuka yang direka untuk memudahkan pembangunan aplikasi web. Ia mengikuti corak seni bina **Model-View-Controller (MVC)** yang memisahkan logik perniagaan, data, dan paparan.
 
-### Kenapa Laravel?
+### Kenapa Laravel Sesuai untuk Sistem Zakat?
 
-- **Sintaks Elegan** — Kod yang bersih dan mudah dibaca
-- **Ekosistem Lengkap** — Artisan CLI, Eloquent ORM, Blade templating
-- **Keselamatan Terbina Dalam** — Perlindungan CSRF, SQL injection, XSS
-- **Komuniti Aktif** — Dokumentasi yang sangat baik dan banyak pakej pihak ketiga
-- **Pembangunan Pantas** — Banyak ciri "out-of-the-box" menjimatkan masa
+- **Sintaks Elegan** — Kod yang bersih, sesuai untuk sistem pengurusan
+- **Eloquent ORM** — Mudah urus data pembayar, pembayaran, dan jenis zakat
+- **Blade Templating** — Bina borang dan laporan dengan pantas
+- **Keselamatan Terbina Dalam** — Penting untuk data peribadi pembayar (CSRF, SQL injection)
+- **Authentication** — Kawalan akses kakitangan terbina dalam
+- **Artisan CLI** — Menjana controller, model, migration dengan satu arahan
 
-### Corak MVC
+### Corak MVC dalam Konteks Sistem Zakat
 
 ```
-Pengguna (Pelayar)
+Kakitangan Pusat Zakat (Pelayar)
     │
     ▼
-  Routes (Laluan) ──► Controller (Pengawal) ──► Model (Data/DB)
-                            │
-                            ▼
-                      View (Paparan/Blade)
-                            │
-                            ▼
-                    Respons ke Pengguna
+  Routes ──► PembayarController ──► Pembayar (Model/DB)
+                    │
+                    ▼
+              pembayar/index.blade.php
+                    │
+                    ▼
+            Senarai Pembayar Dipaparkan
 ```
 
-- **Model** — Berinteraksi dengan pangkalan data (jadual, pertanyaan)
-- **View** — Paparan HTML yang dilihat oleh pengguna (Blade templates)
-- **Controller** — Logik yang menghubungkan Model dan View
+- **Model** — `Pembayar.php`, `JenisZakat.php`, `Pembayaran.php` (berinteraksi dengan jadual MySQL)
+- **View** — Borang pendaftaran, senarai pembayar, resit pembayaran (fail `.blade.php`)
+- **Controller** — `PembayarController.php` mengendalikan operasi CRUD
 
 ---
 
@@ -158,8 +206,6 @@ Buka VS Code dan tekan `Ctrl+Shift+X` untuk membuka panel Extensions.
 
 ### Sambungan Wajib
 
-Cari dan pasang sambungan berikut:
-
 1. **PHP Intelephense** — Autocomplete, diagnostik, dan go-to-definition untuk PHP
 2. **Laravel Blade Snippets** — Penyerlahan sintaks untuk fail `.blade.php`
 3. **Laravel Snippets** — Snippet pantas untuk Route, Controller, Model
@@ -208,22 +254,24 @@ Buka Settings (`Ctrl+,`) dan tambah tetapan berikut dalam `settings.json`:
    - Username: **root**
    - Password: *(kosongkan)*
 
-### Langkah 3: Cipta Pangkalan Data
+### Langkah 3: Cipta Pangkalan Data Zakat
 
 1. Di phpMyAdmin, klik **"New"** di panel kiri
-2. Masukkan nama pangkalan data: **`laravel_blog`**
+2. Masukkan nama pangkalan data: **`zakat_kedah`**
 3. Pilih Collation: **`utf8mb4_unicode_ci`**
 4. Klik **"Create"**
 
 **Output yang dijangka:**
 ```
-Pangkalan data "laravel_blog" telah dicipta.
-Anda akan nampak "laravel_blog" dalam senarai di sebelah kiri.
+Pangkalan data "zakat_kedah" telah dicipta.
+Anda akan nampak "zakat_kedah" dalam senarai di sebelah kiri.
 ```
+
+> **Nota:** Kita namakan `zakat_kedah` kerana sistem ini dibangunkan khusus untuk Pusat Zakat Negeri Kedah.
 
 ---
 
-## Lab 1.2: Cipta Projek Laravel Pertama
+## Lab 1.2: Cipta Projek Laravel — Sistem Zakat
 
 ### Langkah 1: Buka Terminal Laragon
 
@@ -233,14 +281,14 @@ Anda akan nampak "laravel_blog" dalam senarai di sebelah kiri.
 ### Langkah 2: Cipta Projek
 
 ```bash
-composer create-project laravel/laravel blog
+composer create-project laravel/laravel sistem-zakat
 ```
 
 > **Nota:** Proses ini mengambil masa 2-5 minit bergantung pada kelajuan internet. Ia akan memuat turun semua kebergantungan Laravel.
 
 **Output yang dijangka:**
 ```
-Creating a "laravel/laravel" project at "./blog"
+Creating a "laravel/laravel" project at "./sistem-zakat"
 Installing laravel/laravel (v11.x.x)
   - Downloading laravel/laravel (v11.x.x)
 ...
@@ -251,28 +299,28 @@ Application key set successfully.
 
 1. Buka folder projek dalam VS Code:
    ```bash
-   cd blog
+   cd sistem-zakat
    code .
    ```
 
-2. Buka fail `.env` di root projek dan kemas kini tetapan pangkalan data:
+2. Buka fail `.env` di root projek dan kemas kini tetapan:
 
 ```env
-APP_NAME=Blog
+APP_NAME="Sistem Zakat Kedah"
 APP_ENV=local
 APP_KEY=base64:... (sudah dijana)
 APP_DEBUG=true
-APP_URL=http://blog.test
+APP_URL=http://sistem-zakat.test
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=laravel_blog
+DB_DATABASE=zakat_kedah
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-> **PENTING:** Pastikan `DB_DATABASE` sepadan dengan nama pangkalan data yang anda cipta dalam phpMyAdmin tadi.
+> **PENTING:** Pastikan `DB_DATABASE=zakat_kedah` sepadan dengan nama pangkalan data yang anda cipta dalam phpMyAdmin tadi.
 
 ### Langkah 4: Jalankan Pelayan
 
@@ -285,12 +333,12 @@ Buka pelayar: **http://127.0.0.1:8000**
 **Pilihan B — Menggunakan Laragon (disyorkan):**
 
 Laragon secara automatik mencipta virtual host. Buka pelayar dan pergi ke:
-**http://blog.test**
+**http://sistem-zakat.test**
 
-> **Penyelesaian Masalah:** Jika `blog.test` tidak berfungsi:
+> **Penyelesaian Masalah:** Jika `sistem-zakat.test` tidak berfungsi:
 > 1. Pastikan Laragon sedang berjalan
 > 2. Klik kanan Laragon > Apache > Reload
-> 3. Cuba buka `http://blog.test` semula
+> 3. Cuba buka `http://sistem-zakat.test` semula
 
 **Output yang dijangka:**
 ```
@@ -324,12 +372,12 @@ Running migrations...
 Selepas mencipta projek, ini adalah struktur folder utama:
 
 ```
-blog/
+sistem-zakat/
 ├── app/                    # Logik teras aplikasi
 │   ├── Http/
-│   │   ├── Controllers/    # Pengawal (Controllers)
+│   │   ├── Controllers/    # PembayarController, dll.
 │   │   └── Middleware/     # Middleware
-│   ├── Models/             # Model Eloquent
+│   ├── Models/             # Pembayar.php, JenisZakat.php, Pembayaran.php
 │   └── Providers/          # Service Providers
 ├── bootstrap/              # Fail permulaan rangka kerja
 ├── config/                 # Fail konfigurasi
@@ -339,14 +387,18 @@ blog/
 │   └── ...
 ├── database/
 │   ├── factories/          # Factory untuk data ujian
-│   ├── migrations/         # Fail migrasi pangkalan data
-│   └── seeders/            # Seeder untuk data awal
+│   ├── migrations/         # Fail migrasi (create_pembayars_table, dll.)
+│   └── seeders/            # Seeder untuk data awal (jenis zakat)
 ├── public/                 # Titik masuk utama
 │   └── index.php           # Front controller
 ├── resources/
 │   ├── css/                # Fail CSS sumber
 │   ├── js/                 # Fail JavaScript sumber
 │   └── views/              # Paparan Blade (.blade.php)
+│       ├── layouts/        # Layout utama
+│       ├── pembayar/       # Views untuk pembayar
+│       ├── pembayaran/     # Views untuk pembayaran
+│       └── jenis-zakat/    # Views untuk jenis zakat
 ├── routes/
 │   ├── web.php             # Laluan untuk pelayar web
 │   ├── api.php             # Laluan untuk API
@@ -361,16 +413,16 @@ blog/
 └── vite.config.js          # Konfigurasi Vite (aset frontend)
 ```
 
-### Fail & Folder Paling Penting untuk Pemula
+### Fail & Folder Paling Penting untuk Projek Zakat
 
-| Fail/Folder | Kekerapan Guna | Tujuan |
-|-------------|----------------|--------|
-| `routes/web.php` | Sangat kerap | Tentukan semua URL aplikasi |
-| `app/Http/Controllers/` | Sangat kerap | Logik untuk setiap halaman |
-| `app/Models/` | Kerap | Interaksi dengan pangkalan data |
-| `resources/views/` | Sangat kerap | Fail HTML/Blade untuk paparan |
-| `database/migrations/` | Kerap | Struktur jadual pangkalan data |
-| `.env` | Kadang-kadang | Konfigurasi (DB, API keys) |
+| Fail/Folder | Kekerapan Guna | Tujuan dalam Sistem Zakat |
+|-------------|----------------|---------------------------|
+| `routes/web.php` | Sangat kerap | URL: /pembayar, /pembayaran, /jenis-zakat |
+| `app/Http/Controllers/` | Sangat kerap | PembayarController, PembayaranController |
+| `app/Models/` | Kerap | Pembayar.php, JenisZakat.php, Pembayaran.php |
+| `resources/views/` | Sangat kerap | Borang, senarai, resit |
+| `database/migrations/` | Kerap | Jadual pembayar, pembayaran, jenis_zakat |
+| `.env` | Kadang-kadang | DB: zakat_kedah, APP_NAME |
 | `config/` | Jarang | Tetapan rangka kerja |
 
 ---
@@ -391,9 +443,21 @@ blog/
 ### Cuba Ubah Halaman Selamat Datang
 
 1. Buka `resources/views/welcome.blade.php`
-2. Cari teks "Laravel" dan tukar kepada "Selamat Datang ke Blog Saya"
+2. Cari teks "Laravel" dan tukar kepada **"Sistem Pengurusan Zakat Kedah"**
 3. Simpan fail (`Ctrl+S`)
 4. Muat semula pelayar — anda akan nampak perubahan serta-merta!
+
+### Cuba Tambah Route Pertama
+
+Buka `routes/web.php` dan tambah di bawah route sedia ada:
+
+```php
+Route::get('/salam', function () {
+    return 'Assalamualaikum! Selamat datang ke Sistem Zakat Kedah.';
+});
+```
+
+Buka pelayar: **http://sistem-zakat.test/salam** — anda akan nampak teks tersebut!
 
 ---
 
@@ -402,11 +466,13 @@ blog/
 | Topik | Status |
 |-------|--------|
 | Memahami apa itu Laravel & MVC | ✅ |
+| Memahami projek Sistem Zakat yang akan dibina | ✅ |
 | Memasang Laragon (Apache + PHP + MySQL) | ✅ |
 | Memasang VS Code + sambungan | ✅ |
 | Memasang Node.js | ✅ |
 | Mengkonfigurasi MySQL & phpMyAdmin | ✅ |
-| Mencipta projek Laravel pertama | ✅ |
+| Mencipta pangkalan data `zakat_kedah` | ✅ |
+| Mencipta projek Laravel `sistem-zakat` | ✅ |
 | Menjalankan migrasi pertama | ✅ |
 | Memahami struktur direktori | ✅ |
 
@@ -414,6 +480,9 @@ blog/
 
 Pastikan sebelum pulang:
 1. ✅ Laragon boleh dimulakan tanpa ralat
-2. ✅ `http://blog.test` memaparkan halaman Laravel
+2. ✅ `http://sistem-zakat.test` memaparkan halaman Laravel
 3. ✅ `php artisan migrate` berjaya tanpa ralat
-4. ✅ VS Code boleh membuka folder projek `blog`
+4. ✅ VS Code boleh membuka folder projek `sistem-zakat`
+5. ✅ Route `/salam` berfungsi di pelayar
+
+> **Hari 2:** Kita akan mula membina **PembayarController** dengan semua operasi CRUD — senarai, daftar, kemaskini, dan padam pembayar zakat!

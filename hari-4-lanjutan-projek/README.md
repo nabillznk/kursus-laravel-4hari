@@ -1,1275 +1,954 @@
-# Hari 4: Ciri Lanjutan dan Projek Akhir
+# Kursus Laravel 4 Hari | Pusat Zakat Negeri Kedah
 
-Selamat datang ke hari terakhir kursus Laravel 4 Hari! Hari ini kita akan mempelajari pengesahan pengguna, membina API RESTful, hubungan model, amalan terbaik, dan menyelesaikan projek blog lengkap.
+## Hari 4: Lanjutan Projek - Pengesahan, Hubungan Model, API & Dashboard
+
+Selamat datang di Hari 4 (hari terakhir) Kursus Laravel 4 Hari kami! Pada hari ini, kami akan menyempurnakan Sistem Pengurusan Zakat dengan menambahkan:
+
+- **Pengesahan Pengguna (Authentication)** - melindungi sistem dengan login/logout
+- **Hubungan Model (Relationships)** - menghubungkan data Pembayar, Pembayaran, dan Jenis Zakat
+- **API RESTful** - menyediakan akses data melalui API JSON
+- **Dashboard & Laporan** - paparan ringkasan statistik zakat
+- **Penyebaran (Deployment)** - persiapan untuk production
 
 ---
 
 ## Modul 4.1: Pengesahan Pengguna (Authentication)
 
-### Apa itu Pengesahan dalam Laravel?
+### Pengenalan
 
-Pengesahan (authentication) adalah proses mengesahkan identiti pengguna. Laravel menyediakan beberapa cara untuk menangani pengesahan dengan mudah:
+Pengesahan pengguna adalah langkah penting untuk melindungi data zakat yang sensitif. Hanya staf berdaftar yang sepatutnya dapat mengakses sistem. Laravel menyediakan alat lengkap untuk menguruskan pengesahan pengguna.
 
-- **Sessions**: Cara tradisional untuk web applications (menyimpan data pengguna dalam session)
-- **Tokens**: Untuk API authentication (setiap request memakai token)
-- **Two-Factor Authentication**: Keselamatan tambahan
+### Pasang Laravel Breeze
 
-### Perbandingan: Laravel Breeze vs Sanctum vs Passport
+Laravel Breeze ialah paket yang menyediakan authentication scaffolding yang mudah dan cepat.
 
-#### **Laravel Breeze**
-- Kaedah pengesahan yang paling mudah dan ringkas
-- Sesuai untuk aplikasi web tradisional dengan sessions
-- Sudah disediakan dengan register, login, logout
-- Menggunakan views Blade dan session authentication
-- **Terbaik untuk**: Web applications, beginner-friendly
-
-```
-Pros:
-- Simple, cepat setup
-- Bagus untuk web applications
-- Sudah ada boilerplate untuk forms
-
-Cons:
-- Tidak sesuai untuk mobile apps
-- Tidak ada API token support
-```
-
-#### **Laravel Sanctum**
-- Untuk aplikasi yang perlu web dan API authentication
-- Menggunakan tokens untuk API, sessions untuk web
-- Lightweight dan fleksibel
-- **Terbaik untuk**: SPA (Single Page Applications) + API
-
-```
-Pros:
-- Mendukung both web dan API
-- Token-based untuk API
-- CSRF protection built-in
-
-Cons:
-- Lebih kompleks dari Breeze
-```
-
-#### **Laravel Passport**
-- OAuth 2.0 authentication server
-- Untuk aplikasi dengan banyak third-party clients
-- Lebih powerful dan kompleks
-- **Terbaik untuk**: Enterprise applications dengan multiple clients
-
-```
-Pros:
-- Full OAuth 2.0 support
-- Multiple authentication scopes
-
-Cons:
-- Lebih berat
-- Learning curve yang curam
-```
-
-**Untuk kursus ini**: Kita akan gunakan **Laravel Breeze** kerana ia paling mudah dan sesuai untuk pemula.
-
----
-
-## Lab 4.1: Pasang Laravel Breeze
-
-Mari kita pasang Laravel Breeze pada projek blog kita.
-
-### Langkah 1: Pastikan Anda dalam direktori projek
-
-```bash
-cd C:\laragon\www\blog
-```
-
-**Output yang diharapkan**:
-```
-C:\laragon\www\blog>
-```
-
-### Langkah 2: Pasang Laravel Breeze via Composer
-
-Jalankan command berikut:
+#### Langkah 1: Pasang Package
 
 ```bash
 composer require laravel/breeze --dev
 ```
 
-**Output yang diharapkan**:
-```
-Using version ^1.29 for laravel/breeze
-./composer.json has been updated
-Loading composer repositories with package information
-...
-Installing laravel/breeze (v1.29.0)
-...
-Generating optimized autoload files
-```
-
-### Langkah 3: Publish Breeze Scaffolding dengan Blade
-
-Jalankan:
+#### Langkah 2: Jalankan Arisan Breeze
 
 ```bash
 php artisan breeze:install blade
 ```
 
-**Output yang diharapkan**:
-```
-Publishing Breeze's assets and stubs...
+Ini akan:
+- Menjana fail-fail authentication (login, register, forgot password)
+- Menjana migration untuk jadual `users`
+- Menjana middleware authentication
 
-   ____                          __  _____
-  / __ )_________ ___ ___ ___  / /_/ __  /
- / __  / ___/ __ `__ `__ \/ _ \/ __/ /_/ /
-/ /_/ / /  / / / / / / / /  __/ /__\__, /
-/_____/_/  /_/ /_/ /_/ /_/\___/\___/____/
-
-Breeze scaffolding published successfully.
-```
-
-Jika anda diminta untuk overwrite file, tekan `Y` dan Enter.
-
-### Langkah 4: Pasang NPM Dependencies
-
-```bash
-npm install
-```
-
-**Output yang diharapkan**:
-```
-up to date, audited 48 packages in 2s
-5 packages are looking for funding
-```
-
-### Langkah 5: Compile CSS dan JavaScript
-
-```bash
-npm run build
-```
-
-**Output yang diharapkan**:
-```
-> build
-> vite build
-
-vite v4.x.x building for production...
-✓ 123 modules transformed.
-dist/assets/app-abc123.js    250.00 kB │ gzip: 75.00 kB
-dist/assets/app-abc123.css    45.00 kB │ gzip: 10.00 kB
-```
-
-### Langkah 6: Jalankan Database Migration
-
-Breeze sudah menginclude User migration. Mari kita jalankan:
+#### Langkah 3: Jalankan Migrasi
 
 ```bash
 php artisan migrate
 ```
 
-**Output yang diharapkan**:
-```
-  Illuminate\Database\Migrations\2014_10_12_000000_create_users_table ........... 3ms PASSED
-  Illuminate\Database\Migrations\2014_10_12_100000_create_password_resets_table . 1ms PASSED
-  Illuminate\Database\Migrations\2019_08_19_000000_create_failed_jobs_table ..... 1ms PASSED
-  Illuminate\Database\Migrations\2019_12_14_000001_create_personal_access_tokens_table . 2ms PASSED
+Sekarang jadual `users` telah dicipta di pangkalan data kami.
 
-  Database migrations completed successfully.
-```
+### Struktur Fail Authentication
 
-### Langkah 7: Jalankan Development Server
-
-```bash
-php artisan serve
-```
-
-**Output yang diharapkan**:
-```
-   _______
-  |  _    |
-  | | |   |
-  | |_|   |
-  |_|___| v11.x
-
-  Server running on [http://127.0.0.1:8000]
-```
-
-Pada terminal lain, jalankan:
-
-```bash
-npm run dev
-```
-
-### Langkah 8: Test Functionality
-
-Buka browser ke `http://localhost:8000`
-
-**Anda sepatutnya akan lihat**:
-- Navigation bar dengan tombol "Login" dan "Register"
-- Homepage Laravel
-
-#### Test Register
-
-1. Klik "Register"
-2. Isi form:
-   - Name: `Mohd Ali`
-   - Email: `ali@example.com`
-   - Password: `password123`
-   - Confirm Password: `password123`
-3. Klik "Register"
-
-**Output yang diharapkan**:
-- Anda akan di-redirect ke dashboard
-- Di navigation bar akan muncul nama pengguna "Mohd Ali"
-
-**File yang dibuat**:
-- `app/Models/User.php` (sudah ada)
-- `resources/views/auth/register.blade.php`
-- `resources/views/auth/login.blade.php`
-- `routes/auth.php` (routes untuk auth)
-- `app/Http/Controllers/Auth/RegisteredUserController.php`
-- `app/Http/Controllers/Auth/AuthenticatedSessionController.php`
-
-#### Test Login
-
-1. Klik nama pengguna di top-right
-2. Klik "Logout"
-3. Klik "Login"
-4. Masukkan:
-   - Email: `ali@example.com`
-   - Password: `password123`
-5. Klik "Log in"
-
-**Output yang diharapkan**:
-- Anda akan login dan redirect ke dashboard
-- Anda akan lihat dashboard dengan "You are logged in!"
-
-#### Test Logout
-
-1. Klik nama pengguna di top-right
-2. Klik "Log Out"
-
-**Output yang diharapkan**:
-- Anda akan logout dan redirect ke homepage
-- Navigation bar akan balik menunjukkan "Login" dan "Register"
-
-### Troubleshooting - Lab 4.1
-
-**Masalah 1: "npm not found"**
-```
-Solusi: Pastikan Node.js sudah dipasang. Download dari https://nodejs.org
-```
-
-**Masalah 2: "Class not found" error selepas breeze:install**
-```
-Solusi: Jalankan:
-php artisan cache:clear
-composer dump-autoload
-php artisan serve
-```
-
-**Masalah 3: Halaman login tidak stylesheet yang indah**
-```
-Solusi: Pastikan `npm run build` sudah selesai, kemudian refresh browser (Ctrl+Shift+R)
-```
-
-**Masalah 4: Cannot migrate, table already exists**
-```
-Solusi:
-php artisan migrate:refresh
-atau jika ingin semua data hilang:
-php artisan migrate:fresh
-```
-
----
-
-## Modul 4.2: Membina API RESTful
-
-### Apa itu REST API?
-
-REST (Representational State Transfer) adalah seni cara membina web services yang fleksibel dan scalable.
-
-#### Prinsip REST:
-
-1. **Stateless**: Setiap request mempunyai semua informasi yang diperlukan
-2. **Resource-Oriented**: Gunakan nouns, bukan verbs
-3. **Standard HTTP Methods**:
-   - `GET` - Ambil data
-   - `POST` - Cipta data baru
-   - `PUT` - Update data
-   - `DELETE` - Padam data
-
-#### HTTP Status Codes:
+Selepas memasang Breeze, struktur fail anda akan berbentuk:
 
 ```
-200 OK               - Request successful
-201 Created          - Resource created successfully
-400 Bad Request      - Invalid request
-401 Unauthorized     - Authentication failed
-403 Forbidden        - Authentication OK, tapi tidak ada permission
-404 Not Found        - Resource tidak dijumpai
-500 Server Error     - Server error
+resources/views/auth/
+├── login.blade.php          # Halaman Login
+├── register.blade.php       # Halaman Daftar
+├── forgot-password.blade.php
+└── reset-password.blade.php
+
+resources/views/layouts/
+├── app.blade.php           # Layout dengan navigation
+
+app/Http/Controllers/
+├── Auth/AuthenticatedSessionController.php
+├── Auth/RegisteredUserController.php
+└── Auth/PasswordResetLinkController.php
 ```
 
-#### Contoh REST API Design:
+### Menggunakan Authentication dalam Rute
 
-```
-GET    /api/posts           - Get semua posts
-GET    /api/posts/{id}      - Get satu post
-POST   /api/posts           - Cipta post baru
-PUT    /api/posts/{id}      - Update post
-DELETE /api/posts/{id}      - Padam post
-```
+#### Lindungi Rute dengan Middleware `auth`
 
-### routes/api.php dan API Routes
-
-File `routes/api.php` adalah tempat kita define semua API routes.
-
-Perbezaan dengan `routes/web.php`:
-- API routes mendapat prefix `/api` secara automatic
-- API routes menggunakan token authentication (bukan sessions)
-- API routes me-return JSON (bukan HTML)
-
-```php
-// Dalam routes/api.php
-Route::get('/posts', [PostController::class, 'index']);  // GET /api/posts
-
-// Dalam routes/web.php
-Route::get('/posts', [PostController::class, 'index']);  // GET /posts
-```
-
-### API Resource Routes
-
-Laravel mempunyai cara shortcut untuk define RESTful routes:
-
-```php
-// Membuat 7 routes sekaligus:
-Route::apiResource('posts', PostController::class);
-
-// Equivalent dengan:
-// GET    /api/posts              -> index()
-// POST   /api/posts              -> store()
-// GET    /api/posts/{post}       -> show()
-// PUT    /api/posts/{post}       -> update()
-// DELETE /api/posts/{post}       -> destroy()
-```
-
-### API Controllers
-
-API controllers mirip dengan regular controllers, tapi:
-- Me-return JSON instead of views
-- Tidak ada methods untuk forms (create, edit)
+Dalam `routes/web.php`, tambahkan middleware `auth` untuk melindungi rute zakat:
 
 ```php
 <?php
 
-namespace App\Http\Controllers\Api;
-
-use App\Http\Controllers\Controller;
-use App\Models\Post;
-use Illuminate\Http\Request;
-
-class PostController extends Controller
-{
-    // GET /api/posts
-    public function index()
-    {
-        return response()->json([
-            'success' => true,
-            'message' => 'Posts retrieved successfully',
-            'data' => Post::all()
-        ]);
-    }
-
-    // POST /api/posts
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string'
-        ]);
-
-        $post = Post::create($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Post created successfully',
-            'data' => $post
-        ], 201);
-    }
-
-    // GET /api/posts/{id}
-    public function show(Post $post)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $post
-        ]);
-    }
-
-    // PUT /api/posts/{id}
-    public function update(Request $request, Post $post)
-    {
-        $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'content' => 'sometimes|string'
-        ]);
-
-        $post->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Post updated successfully',
-            'data' => $post
-        ]);
-    }
-
-    // DELETE /api/posts/{id}
-    public function destroy(Post $post)
-    {
-        $post->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Post deleted successfully'
-        ]);
-    }
-}
-```
-
-### Returning JSON
-
-Dalam Laravel, kita boleh return JSON dengan cara:
-
-```php
-// Cara 1: response()->json()
-return response()->json($data);
-
-// Cara 2: Langsung return array (automatic JSON)
-return ['status' => 'success', 'data' => $posts];
-
-// Cara 3: Dengan status code
-return response()->json($data, 201);
-
-// Cara 4: Dengan headers
-return response()->json($data, 200, [
-    'X-Custom-Header' => 'value'
-]);
-```
-
-### API Testing dengan Thunder Client
-
-Thunder Client adalah extension untuk VS Code untuk test API (seperti Postman tapi lebih simple).
-
-#### Install Thunder Client
-
-1. Buka VS Code
-2. Pergi ke Extensions (Ctrl+Shift+X)
-3. Cari "Thunder Client"
-4. Install oleh rangga (official)
-
-#### Test API dengan Thunder Client
-
-1. Buka Thunder Client (ikon kilat di sidebar)
-2. Klik "New Request"
-3. Pilih HTTP method (GET, POST, etc.)
-4. Masukkan URL: `http://localhost:8000/api/posts`
-5. Klik "Send"
-
----
-
-## Lab 4.2: Cipta API CRUD untuk Post
-
-Mari kita cipta API RESTful lengkap untuk Post.
-
-### Langkah 1: Buat API Controller untuk Post
-
-```bash
-php artisan make:controller Api/PostController --api
-```
-
-**Output yang diharapkan**:
-```
-Controller created successfully.
-```
-
-### Langkah 2: Edit routes/api.php
-
-Buka file `routes/api.php`:
-
-```php
-<?php
-
-use Illuminate\Http\Request;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PembayarController;
+use App\Http\Controllers\PembayaranController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\PostController;
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+// Rute Publik
+Route::get('/', function () {
+    return view('welcome');
 });
 
-// API Routes untuk Post
-Route::apiResource('posts', PostController::class);
+// Rute Zakat (Dilindungi oleh Authentication)
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Pembayar CRUD
+    Route::resource('pembayar', PembayarController::class);
+
+    // Pembayaran CRUD
+    Route::resource('pembayaran', PembayaranController::class);
+
+    // Profil Pengguna
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// Rute Authentication (Login, Register, Logout)
+require __DIR__.'/auth.php';
 ```
 
-### Langkah 3: Isi PostController dengan CRUD Methods
+### Proses Login/Logout
 
-Edit `app/Http/Controllers/Api/PostController.php`:
+#### Login
+
+Pengguna melawati `/login` dan memasukkan email dan kata laluan mereka:
+
+```blade
+<!-- resources/views/auth/login.blade.php -->
+<form method="POST" action="{{ route('login') }}">
+    @csrf
+
+    <!-- Email Address -->
+    <div>
+        <label for="email">{{ __('Email') }}</label>
+        <input id="email" class="block mt-1 w-full" type="email" name="email" required autofocus>
+    </div>
+
+    <!-- Password -->
+    <div class="mt-4">
+        <label for="password">{{ __('Password') }}</label>
+        <input id="password" class="block mt-1 w-full" type="password" name="password" required>
+    </div>
+
+    <!-- Remember Me -->
+    <div class="block mt-4">
+        <label for="remember_me" class="inline-flex items-center">
+            <input id="remember_me" type="checkbox" name="remember" value="on">
+            <span class="ml-2 text-sm">{{ __('Remember me') }}</span>
+        </label>
+    </div>
+
+    <div class="flex items-center justify-end mt-4">
+        <button type="submit">{{ __('Log in') }}</button>
+    </div>
+</form>
+```
+
+#### Logout
+
+Dalam navigasi atau menu, tambahkan pautan logout:
+
+```blade
+<!-- resources/views/layouts/navigation.blade.php -->
+<form method="POST" action="{{ route('logout') }}">
+    @csrf
+    <button type="submit">{{ __('Log Out') }}</button>
+</form>
+```
+
+### Menyemak Status Authentication
+
+Dalam kod atau view, anda boleh menyemak sama ada pengguna sudah login:
 
 ```php
-<?php
-
-namespace App\Http\Controllers\Api;
-
-use App\Http\Controllers\Controller;
-use App\Models\Post;
-use Illuminate\Http\Request;
-
-class PostController extends Controller
-{
-    /**
-     * GET /api/posts
-     * Ambil semua posts
-     */
-    public function index()
-    {
-        $posts = Post::all();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Posts retrieved successfully',
-            'data' => $posts
-        ]);
-    }
-
-    /**
-     * POST /api/posts
-     * Cipta post baru
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string'
-        ]);
-
-        try {
-            $post = Post::create($validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Post created successfully',
-                'data' => $post
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create post',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * GET /api/posts/{id}
-     * Ambil satu post berdasarkan ID
-     */
-    public function show($id)
-    {
-        $post = Post::find($id);
-
-        if (!$post) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Post not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $post
-        ]);
-    }
-
-    /**
-     * PUT /api/posts/{id}
-     * Update post
-     */
-    public function update(Request $request, $id)
-    {
-        $post = Post::find($id);
-
-        if (!$post) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Post not found'
-            ], 404);
-        }
-
-        $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'content' => 'sometimes|string'
-        ]);
-
-        try {
-            $post->update($validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Post updated successfully',
-                'data' => $post
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update post',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * DELETE /api/posts/{id}
-     * Padam post
-     */
-    public function destroy($id)
-    {
-        $post = Post::find($id);
-
-        if (!$post) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Post not found'
-            ], 404);
-        }
-
-        try {
-            $post->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Post deleted successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete post',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+// Dalam Controller
+if (Auth::check()) {
+    $user = Auth::user(); // Mendapatkan pengguna semasa
 }
+
+// Dalam Blade View
+@auth
+    <p>Selamat datang, {{ auth()->user()->name }}!</p>
+@endauth
+
+@guest
+    <p>Sila login terlebih dahulu.</p>
+@endguest
 ```
 
-### Langkah 4: Test API dengan Thunder Client
+### Daftar Pengguna Baru
 
-Mari kita test setiap endpoint.
+Dalam halaman `/register`, pengguna baru boleh mendaftar:
 
-#### Test 1: GET /api/posts (Ambil Semua Posts)
+```blade
+<!-- resources/views/auth/register.blade.php -->
+<form method="POST" action="{{ route('register') }}">
+    @csrf
 
-1. Buka Thunder Client
-2. Pilih method: **GET**
-3. URL: `http://localhost:8000/api/posts`
-4. Klik **Send**
+    <!-- Name -->
+    <div>
+        <label for="name">{{ __('Name') }}</label>
+        <input id="name" class="block mt-1 w-full" type="text" name="name" required>
+    </div>
 
-**Expected Output**:
-```json
-{
-  "success": true,
-  "message": "Posts retrieved successfully",
-  "data": [
-    {
-      "id": 1,
-      "title": "Post Pertama",
-      "content": "Ini adalah post pertama saya",
-      "created_at": "2026-04-06T10:30:00.000000Z",
-      "updated_at": "2026-04-06T10:30:00.000000Z"
-    }
-  ]
-}
-```
+    <!-- Email Address -->
+    <div class="mt-4">
+        <label for="email">{{ __('Email') }}</label>
+        <input id="email" class="block mt-1 w-full" type="email" name="email" required>
+    </div>
 
-#### Test 2: POST /api/posts (Cipta Post Baru)
+    <!-- Password -->
+    <div class="mt-4">
+        <label for="password">{{ __('Password') }}</label>
+        <input id="password" class="block mt-1 w-full" type="password" name="password" required>
+    </div>
 
-1. Pilih method: **POST**
-2. URL: `http://localhost:8000/api/posts`
-3. Buka tab **Body**
-4. Pilih **JSON**
-5. Paste code berikut:
-```json
-{
-  "title": "Post API Baru",
-  "content": "Ini adalah post yang dibuat melalui API"
-}
-```
-6. Klik **Send**
+    <!-- Confirm Password -->
+    <div class="mt-4">
+        <label for="password_confirmation">{{ __('Confirm Password') }}</label>
+        <input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required>
+    </div>
 
-**Expected Output** (Status 201):
-```json
-{
-  "success": true,
-  "message": "Post created successfully",
-  "data": {
-    "title": "Post API Baru",
-    "content": "Ini adalah post yang dibuat melalui API",
-    "id": 2,
-    "created_at": "2026-04-06T11:00:00.000000Z",
-    "updated_at": "2026-04-06T11:00:00.000000Z"
-  }
-}
-```
-
-#### Test 3: GET /api/posts/{id} (Ambil Satu Post)
-
-1. Pilih method: **GET**
-2. URL: `http://localhost:8000/api/posts/1`
-3. Klik **Send**
-
-**Expected Output**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "title": "Post Pertama",
-    "content": "Ini adalah post pertama saya",
-    "created_at": "2026-04-06T10:30:00.000000Z",
-    "updated_at": "2026-04-06T10:30:00.000000Z"
-  }
-}
-```
-
-#### Test 4: PUT /api/posts/{id} (Update Post)
-
-1. Pilih method: **PUT**
-2. URL: `http://localhost:8000/api/posts/1`
-3. Body (JSON):
-```json
-{
-  "title": "Post Pertama - Updated",
-  "content": "Isi sudah di-update"
-}
-```
-4. Klik **Send**
-
-**Expected Output**:
-```json
-{
-  "success": true,
-  "message": "Post updated successfully",
-  "data": {
-    "id": 1,
-    "title": "Post Pertama - Updated",
-    "content": "Isi sudah di-update",
-    "created_at": "2026-04-06T10:30:00.000000Z",
-    "updated_at": "2026-04-06T11:15:00.000000Z"
-  }
-}
-```
-
-#### Test 5: DELETE /api/posts/{id} (Padam Post)
-
-1. Pilih method: **DELETE**
-2. URL: `http://localhost:8000/api/posts/2`
-3. Klik **Send**
-
-**Expected Output**:
-```json
-{
-  "success": true,
-  "message": "Post deleted successfully"
-}
-```
-
-#### Test 6: GET /api/posts (Confirm Padam)
-
-1. Pilih method: **GET**
-2. URL: `http://localhost:8000/api/posts`
-3. Klik **Send**
-
-**Expected Output**: Post dengan ID 2 sudah hilang dari list.
-
-### Test dengan cURL (Command Line)
-
-Jika anda tidak mahu guna Thunder Client, boleh guna cURL:
-
-```bash
-# GET semua posts
-curl http://localhost:8000/api/posts
-
-# Cipta post baru
-curl -X POST http://localhost:8000/api/posts \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Post cURL","content":"Dibuat dengan cURL"}'
-
-# Ambil post dengan ID 1
-curl http://localhost:8000/api/posts/1
-
-# Update post ID 1
-curl -X PUT http://localhost:8000/api/posts/1 \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated Title"}'
-
-# Padam post ID 1
-curl -X DELETE http://localhost:8000/api/posts/1
-```
-
-### Troubleshooting - Lab 4.2
-
-**Masalah 1: "Target class [Api\PostController] does not exist"**
-```
-Solusi: Pastikan anda create controller dengan command yang betul
-php artisan make:controller Api/PostController --api
-```
-
-**Masalah 2: "POST returns 404"**
-```
-Solusi: Pastikan route sudah di-define dalam routes/api.php
-Jalankan: php artisan route:list untuk lihat semua routes
-```
-
-**Masalah 3: "Validation error" ketika POST**
-```
-Solusi: Pastikan JSON body sudah betul
-Contoh yang betul:
-{
-  "title": "Post Title",
-  "content": "Post content here"
-}
-```
-
-**Masalah 4: Request timeout**
-```
-Solusi: Pastikan php artisan serve masih running
-Jika tidak, jalankan:
-php artisan serve
+    <button type="submit">{{ __('Register') }}</button>
+</form>
 ```
 
 ---
 
-## Modul 4.3: Hubungan Model (Relationships)
+## Modul 4.2: Hubungan Model (Eloquent Relationships)
 
-### Apa itu Model Relationships?
+### Pengenalan Hubungan
 
-Relationships membolehkan kita untuk "menghubungkan" data antara dua model.
+Dalam sistem zakat, data-data berkaitan antara satu sama lain. Sebagai contoh:
+- Seorang **Pembayar** boleh membuat banyak **Pembayaran**
+- Satu **Pembayaran** milik seorang **Pembayar**
+- Satu **Pembayaran** adalah untuk satu jenis **Jenis Zakat**
+- Satu **Jenis Zakat** mempunyai banyak **Pembayaran**
 
-Contoh dalam aplikasi blog:
-- **User** boleh mempunyai banyak **Posts**
-- Setiap **Post** belong kepada satu **User**
+Laravel Eloquent membuat menguruskan hubungan ini menjadi mudah.
 
-### Jenis Relationships
+### Jenis-jenis Hubungan
 
-#### 1. One-to-Many (User hasMany Post)
+| Hubungan | Deskripsi | Contoh |
+|----------|-----------|--------|
+| **One-to-Many** | Satu model mempunyai banyak model lain | Pembayar hasMany Pembayaran |
+| **Belongs-To** | Model ini milik model lain | Pembayaran belongsTo Pembayar |
+| **Many-to-Many** | Dua model boleh mempunyai banyak satu sama lain | (tidak digunakan dalam projek ini) |
 
-```php
-// User model
-public function posts()
-{
-    return $this->hasMany(Post::class);
-}
+### Mentakrifkan Hubungan dalam Model
 
-// Usage:
-$user = User::find(1);
-$user->posts; // Ambil semua posts untuk user ini
-```
-
-#### 2. Belongs-To (Post belongsTo User)
-
-```php
-// Post model
-public function user()
-{
-    return $this->belongsTo(User::class);
-}
-
-// Usage:
-$post = Post::find(1);
-$post->user; // Ambil user yang punya post ini
-```
-
-#### 3. Many-to-Many (Contoh: Post mempunyai banyak Tags)
-
-```php
-// Post model
-public function tags()
-{
-    return $this->belongsToMany(Tag::class);
-}
-
-// Usage:
-$post = Post::find(1);
-$post->tags; // Ambil semua tags untuk post ini
-```
-
-### Protecting Routes dengan Auth Middleware
-
-Middleware adalah "filter" yang jalan sebelum request sampai ke controller.
-
-#### Middleware Authentication
-
-```php
-// routes/web.php
-
-// Route yang memerlukan login
-Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::resource('posts', PostController::class);
-});
-
-// Alternative: Dalam controller
-public function __construct()
-{
-    $this->middleware('auth')->except('index', 'show');
-}
-```
-
-#### Auth Guard
-
-Laravel punya beberapa "guards" (authentication mechanisms):
-- `web` - Session-based (default)
-- `api` - Token-based
-
-```php
-// Check jika user sudah login
-auth()->check();      // return true/false
-auth()->user();       // return User object atau null
-auth()->id();         // return user ID atau null
-
-// Check dalam route/controller
-if (auth()->check()) {
-    echo "User logged in: " . auth()->user()->name;
-}
-```
-
-### Showing Only User's Posts
-
-Dalam aplikasi blog, user hanya boleh lihat/edit posts mereka sendiri.
-
-```php
-// Controller
-public function index()
-{
-    // Hanya posts milik user yang login
-    $posts = auth()->user()->posts;
-
-    return view('posts.index', compact('posts'));
-}
-
-public function edit(Post $post)
-{
-    // Authorization: check jika user adalah owner
-    if ($post->user_id !== auth()->id()) {
-        abort(403, 'Unauthorized');
-    }
-
-    return view('posts.edit', compact('post'));
-}
-```
-
----
-
-## Lab 4.3: Hubungkan Post dengan User
-
-Mari kita hubungkan Post model dengan User model.
-
-### Langkah 1: Cipta Migration untuk Add user_id ke Posts
-
-```bash
-php artisan make:migration add_user_id_to_posts_table
-```
-
-**Output yang diharapkan**:
-```
-Migration created successfully at database/migrations/2026_04_06_xxxxx_add_user_id_to_posts_table.php
-```
-
-### Langkah 2: Edit Migration File
-
-Buka file migration yang baru dibuat dan edit:
+#### Model Pembayar
 
 ```php
 <?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::table('posts', function (Blueprint $table) {
-            // Tambah foreign key ke users table
-            $table->foreignId('user_id')
-                  ->constrained()
-                  ->onDelete('cascade');
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('posts', function (Blueprint $table) {
-            $table->dropForeignIdFor('User');
-        });
-    }
-};
-```
-
-### Langkah 3: Jalankan Migration
-
-```bash
-php artisan migrate
-```
-
-**Output yang diharapkan**:
-```
-  database/migrations/2026_04_06_xxxxx_add_user_id_to_posts_table .. 2ms PASSED
-
-  Database migrations completed successfully.
-```
-
-### Langkah 4: Update Post Model
-
-Edit `app/Models/Post.php`:
-
-```php
-<?php
+// app/Models/Pembayar.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Post extends Model
+class Pembayar extends Model
 {
-    protected $fillable = ['title', 'content', 'user_id'];
+    protected $table = 'pembayar';
+    protected $fillable = ['nama', 'no_id', 'no_telefon', 'alamat', 'bandar', 'negeri'];
+    public $timestamps = true;
 
     /**
-     * Post belongs to a User
+     * Hubungan: Pembayar mempunyai banyak Pembayaran
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function user()
+    public function pembayarans(): HasMany
     {
-        return $this->belongsTo(User::class);
+        return $this->hasMany(Pembayaran::class, 'pembayar_id', 'id');
+    }
+
+    /**
+     * Mendapatkan jumlah pembayaran pembayar ini
+     */
+    public function jumlahPembayaran()
+    {
+        return $this->pembayarans()->sum('jumlah');
     }
 }
 ```
 
-### Langkah 5: Update User Model
+#### Model Pembayaran
 
-Edit `app/Models/User.php`:
+```php
+<?php
+// app/Models/Pembayaran.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Pembayaran extends Model
+{
+    protected $table = 'pembayaran';
+    protected $fillable = [
+        'pembayar_id',
+        'jenis_zakat_id',
+        'jumlah',
+        'no_resit',
+        'cara_bayar',
+        'tarikh_bayar'
+    ];
+    public $timestamps = true;
+
+    /**
+     * Hubungan: Pembayaran milik seorang Pembayar
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function pembayar(): BelongsTo
+    {
+        return $this->belongsTo(Pembayar::class, 'pembayar_id', 'id');
+    }
+
+    /**
+     * Hubungan: Pembayaran adalah untuk satu Jenis Zakat
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function jenisZakat(): BelongsTo
+    {
+        return $this->belongsTo(JenisZakat::class, 'jenis_zakat_id', 'id');
+    }
+}
+```
+
+#### Model JenisZakat
+
+```php
+<?php
+// app/Models/JenisZakat.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class JenisZakat extends Model
+{
+    protected $table = 'jenis_zakat';
+    protected $fillable = ['nama', 'deskripsi'];
+    public $timestamps = true;
+
+    /**
+     * Hubungan: Jenis Zakat mempunyai banyak Pembayaran
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function pembayarans(): HasMany
+    {
+        return $this->hasMany(Pembayaran::class, 'jenis_zakat_id', 'id');
+    }
+
+    /**
+     * Mendapatkan jumlah kutipan untuk jenis zakat ini
+     */
+    public function jumlahKutipan()
+    {
+        return $this->pembayarans()->sum('jumlah');
+    }
+}
+```
+
+### Menggunakan Hubungan
+
+#### Mengakses Data Berkaitan
+
+```php
+<?php
+// Dalam Controller atau Model
+
+// Mendapatkan pembayar dengan ID 1
+$pembayar = Pembayar::find(1);
+
+// Mendapatkan semua pembayaran pembayar ini
+$pembayarans = $pembayar->pembayarans; // Menggunakan hubungan
+
+// Atau dengan eager loading (lebih cepat)
+$pembayar = Pembayar::with('pembayarans')->find(1);
+
+// Mendapatkan pembayaran dengan ID 5
+$pembayaran = Pembayaran::find(5);
+
+// Mendapatkan pembayar yang membuat pembayaran ini
+$pembayar = $pembayaran->pembayar;
+echo $pembayar->nama; // Output: Nama pembayar
+
+// Mendapatkan jenis zakat untuk pembayaran ini
+$jenisZakat = $pembayaran->jenisZakat;
+echo $jenisZakat->nama; // Output: Zakat Fitrah (contoh)
+```
+
+#### Eager Loading (Meningkatkan Prestasi)
+
+Apabila mengambil data berkaitan, gunakan `with()` untuk mengelakkan "N+1 queries":
+
+```php
+<?php
+// Tidak optimum (N+1 queries)
+$pembayarans = Pembayaran::all();
+foreach ($pembayarans as $pembayaran) {
+    echo $pembayaran->pembayar->nama; // Query baru setiap kali!
+}
+
+// Optimum (2 queries sahaja)
+$pembayarans = Pembayaran::with('pembayar', 'jenisZakat')->get();
+foreach ($pembayarans as $pembayaran) {
+    echo $pembayaran->pembayar->nama; // Tidak ada query tambahan
+}
+```
+
+#### Mencari dengan Hubungan
+
+```php
+<?php
+// Mendapatkan semua pembayaran untuk jenis zakat "Zakat Fitrah"
+$fitrah = JenisZakat::where('nama', 'Zakat Fitrah')->first();
+$pembayarans = $fitrah->pembayarans;
+
+// Atau dengan has() untuk filter
+$jenisZakat = JenisZakat::has('pembayarans')->get(); // JenisZakat yang ada pembayaran
+
+// Mendapatkan pembayar yang mempunyai lebih dari 5 pembayaran
+$pembayars = Pembayar::whereHas('pembayarans', function ($query) {
+    $query->where('jumlah', '>', 5000); // Pembayaran lebih dari RM5000
+})->get();
+```
+
+---
+
+## Modul 4.3: API RESTful
+
+### Pengenalan API
+
+API (Application Programming Interface) membolehkan aplikasi lain mengakses data sistem kami dalam format JSON. Ini berguna untuk aplikasi mobile atau integrasi pihak ketiga.
+
+### RESTful Principles
+
+REST (Representational State Transfer) menggunakan HTTP verbs untuk operasi CRUD:
+
+| HTTP Verb | Operasi | Rute Contoh |
+|-----------|---------|-------------|
+| **GET** | Baca | `/api/pembayar` (semua) atau `/api/pembayar/1` (satu) |
+| **POST** | Cipta | `/api/pembayar` (dengan data JSON dalam body) |
+| **PUT** | Kemaskini | `/api/pembayar/1` (dengan data JSON dalam body) |
+| **DELETE** | Padam | `/api/pembayar/1` |
+
+### Mentakrifkan Rute API
+
+Dalam `routes/api.php`, tambahkan rute API:
 
 ```php
 <?php
 
-namespace App\Models;
+use App\Http\Controllers\Api\PembayarApiController;
+use Illuminate\Support\Facades\Route;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+// Rute API Pembayar
+Route::apiResource('pembayar', PembayarApiController::class);
 
-class User extends Authenticatable
+// Opsional: Rute custom API
+Route::get('pembayar/{id}/pembayarans', [PembayarApiController::class, 'getPembayarans']);
+```
+
+### Membuat API Controller
+
+Buat controller khusus untuk API:
+
+```bash
+php artisan make:controller Api/PembayarApiController --api
+```
+
+Isi `app/Http/Controllers/Api/PembayarApiController.php`:
+
+```php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Pembayar;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+
+class PembayarApiController extends Controller
 {
-    use HasFactory, Notifiable;
-
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    protected function casts(): array
+    /**
+     * GET /api/pembayar
+     * Mendapatkan semua pembayar
+     */
+    public function index(): JsonResponse
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        try {
+            $pembayars = Pembayar::with('pembayarans')->paginate(15);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Senarai pembayar berjaya diambil',
+                'data' => $pembayars
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ralat: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * User has many Posts
+     * POST /api/pembayar
+     * Cipta pembayar baru
      */
-    public function posts()
+    public function store(Request $request): JsonResponse
     {
-        return $this->hasMany(Post::class);
+        try {
+            // Validasi data
+            $validated = $request->validate([
+                'nama' => 'required|string|max:100',
+                'no_id' => 'required|string|unique:pembayar,no_id',
+                'no_telefon' => 'required|string',
+                'alamat' => 'required|string',
+                'bandar' => 'required|string',
+                'negeri' => 'required|string'
+            ]);
+
+            // Buat pembayar baru
+            $pembayar = Pembayar::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayar berjaya ditambah',
+                'data' => $pembayar
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ralat: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/pembayar/{id}
+     * Mendapatkan pembayar tertentu
+     */
+    public function show(Pembayar $pembayar): JsonResponse
+    {
+        try {
+            $pembayar->load('pembayarans.jenisZakat');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayar berjaya diambil',
+                'data' => $pembayar
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ralat: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * PUT /api/pembayar/{id}
+     * Kemaskini pembayar
+     */
+    public function update(Request $request, Pembayar $pembayar): JsonResponse
+    {
+        try {
+            // Validasi data
+            $validated = $request->validate([
+                'nama' => 'sometimes|required|string|max:100',
+                'no_id' => 'sometimes|required|string|unique:pembayar,no_id,' . $pembayar->id,
+                'no_telefon' => 'sometimes|required|string',
+                'alamat' => 'sometimes|required|string',
+                'bandar' => 'sometimes|required|string',
+                'negeri' => 'sometimes|required|string'
+            ]);
+
+            // Kemaskini pembayar
+            $pembayar->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayar berjaya dikemaskini',
+                'data' => $pembayar
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ralat: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * DELETE /api/pembayar/{id}
+     * Padam pembayar
+     */
+    public function destroy(Pembayar $pembayar): JsonResponse
+    {
+        try {
+            $pembayar->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayar berjaya dipadam'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ralat: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/pembayar/{id}/pembayarans
+     * Mendapatkan pembayaran pembayar tertentu
+     */
+    public function getPembayarans(Pembayar $pembayar): JsonResponse
+    {
+        try {
+            $pembayarans = $pembayar->pembayarans()->with('jenisZakat')->paginate(10);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayaran berjaya diambil',
+                'data' => $pembayarans
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ralat: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 ```
 
-### Langkah 6: Update PostController - Create Method
+### Menguji API dengan Thunder Client
 
-Edit `app/Http/Controllers/PostController.php`:
+**Thunder Client** ialah extension VS Code yang mudah untuk menguji API. Instalasi dari VS Code Extensions Marketplace.
+
+#### Ujian GET (Baca Semua Pembayar)
+
+1. Buka Thunder Client
+2. Pilih **GET**
+3. Masukkan URL: `http://localhost:8000/api/pembayar`
+4. Klik **Send**
+5. Lihat respons JSON:
+
+```json
+{
+  "success": true,
+  "message": "Senarai pembayar berjaya diambil",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "nama": "Ahmad bin Hasan",
+        "no_id": "850101101234",
+        "no_telefon": "0125671234",
+        "alamat": "123 Jalan Merdeka",
+        "bandar": "Alor Setar",
+        "negeri": "Kedah",
+        "created_at": "2025-01-15T10:30:00.000000Z",
+        "updated_at": "2025-01-15T10:30:00.000000Z"
+      }
+    ]
+  }
+}
+```
+
+#### Ujian GET (Baca Satu Pembayar)
+
+1. Pilih **GET**
+2. URL: `http://localhost:8000/api/pembayar/1`
+3. Klik **Send**
+
+#### Ujian POST (Cipta Pembayar Baru)
+
+1. Pilih **POST**
+2. URL: `http://localhost:8000/api/pembayar`
+3. Pergi ke tab **Body** → **JSON**
+4. Masukkan:
+
+```json
+{
+  "nama": "Fatimah binti Ali",
+  "no_id": "880515101234",
+  "no_telefon": "0167891234",
+  "alamat": "456 Jalan Perdana",
+  "bandar": "Ipoh",
+  "negeri": "Perak"
+}
+```
+
+5. Klik **Send**
+
+#### Ujian PUT (Kemaskini Pembayar)
+
+1. Pilih **PUT**
+2. URL: `http://localhost:8000/api/pembayar/1`
+3. Body (JSON):
+
+```json
+{
+  "nama": "Ahmad bin Hasan Baru",
+  "no_telefon": "0125671999"
+}
+```
+
+4. Klik **Send**
+
+#### Ujian DELETE (Padam Pembayar)
+
+1. Pilih **DELETE**
+2. URL: `http://localhost:8000/api/pembayar/1`
+3. Klik **Send**
+
+### Menggunakan API dari curl (Terminal)
+
+Anda juga boleh menguji API dengan `curl` di terminal:
+
+```bash
+# GET
+curl http://localhost:8000/api/pembayar
+
+# POST
+curl -X POST http://localhost:8000/api/pembayar \
+  -H "Content-Type: application/json" \
+  -d '{"nama":"Siti Nur","no_id":"900101101234","no_telefon":"0189991234","alamat":"789 Jalan Raja","bandar":"Kuala Lumpur","negeri":"Wilayah Persekutuan"}'
+
+# PUT
+curl -X PUT http://localhost:8000/api/pembayar/1 \
+  -H "Content-Type: application/json" \
+  -d '{"nama":"Ahmad Baru"}'
+
+# DELETE
+curl -X DELETE http://localhost:8000/api/pembayar/1
+```
+
+---
+
+## Modul 4.4: Dashboard & Laporan
+
+### Tujuan Dashboard
+
+Dashboard memberikan paparan ringkas tentang:
+- Jumlah pembayar berdaftar
+- Jumlah kutipan zakat dalam RM
+- Kutipan mengikut jenis zakat
+- Pembayaran terkini (5 terakhir)
+
+### Membuat DashboardController
+
+```bash
+php artisan make:controller DashboardController
+```
+
+Isi `app/Http/Controllers/DashboardController.php`:
 
 ```php
 <?php
 
 namespace App\Http\Controllers;
 
-use App\Models\Post;
-use Illuminate\Http\Request;
+use App\Models\Pembayar;
+use App\Models\Pembayaran;
+use App\Models\JenisZakat;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 
-class PostController extends Controller
+class DashboardController extends Controller
 {
-    public function __construct()
+    /**
+     * Paparan dashboard
+     */
+    public function index(): View
     {
-        // Posts methods memerlukan authentication
-        $this->middleware('auth')->except('index', 'show');
-    }
+        // Jumlah pembayar berdaftar
+        $jumlahPembayar = Pembayar::count();
 
-    public function index()
-    {
-        // Semua orang boleh lihat semua posts
-        $posts = Post::with('user')->get();
-        return view('posts.index', compact('posts'));
-    }
+        // Jumlah kutipan zakat dalam RM
+        $jumlahKutipan = Pembayaran::sum('jumlah') ?? 0;
 
-    public function create()
-    {
-        return view('posts.create');
-    }
+        // Kutipan mengikut jenis zakat
+        $kutipanPerJenis = JenisZakat::with('pembayarans')
+            ->get()
+            ->map(function ($jenis) {
+                return [
+                    'nama' => $jenis->nama,
+                    'jumlah' => $jenis->pembayarans->sum('jumlah'),
+                    'bilangan' => $jenis->pembayarans->count()
+                ];
+            });
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string'
+        // Pembayaran terkini (5 terakhir)
+        $pembayaranTerkini = Pembayaran::with('pembayar', 'jenisZakat')
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('dashboard', [
+            'jumlahPembayar' => $jumlahPembayar,
+            'jumlahKutipan' => $jumlahKutipan,
+            'kutipanPerJenis' => $kutipanPerJenis,
+            'pembayaranTerkini' => $pembayaranTerkini
         ]);
-
-        // Tambah user_id dari auth()->id()
-        $validated['user_id'] = auth()->id();
-
-        Post::create($validated);
-
-        return redirect()->route('posts.index')
-                        ->with('success', 'Post created successfully');
-    }
-
-    public function show(Post $post)
-    {
-        return view('posts.show', compact('post'));
-    }
-
-    public function edit(Post $post)
-    {
-        // Check jika user adalah owner
-        $this->authorize('update', $post);
-
-        return view('posts.edit', compact('post'));
-    }
-
-    public function update(Request $request, Post $post)
-    {
-        $this->authorize('update', $post);
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string'
-        ]);
-
-        $post->update($validated);
-
-        return redirect()->route('posts.show', $post)
-                        ->with('success', 'Post updated successfully');
-    }
-
-    public function destroy(Post $post)
-    {
-        $this->authorize('delete', $post);
-
-        $post->delete();
-
-        return redirect()->route('posts.index')
-                        ->with('success', 'Post deleted successfully');
     }
 }
 ```
 
-### Langkah 7: Cipta Policy untuk Authorization
+### Membuat Dashboard View
 
-```bash
-php artisan make:policy PostPolicy --model=Post
-```
-
-**Output yang diharapkan**:
-```
-Policy created successfully.
-```
-
-Edit `app/Policies/PostPolicy.php`:
-
-```php
-<?php
-
-namespace App\Policies;
-
-use App\Models\Post;
-use App\Models\User;
-
-class PostPolicy
-{
-    public function update(User $user, Post $post): bool
-    {
-        return $user->id === $post->user_id;
-    }
-
-    public function delete(User $user, Post $post): bool
-    {
-        return $user->id === $post->user_id;
-    }
-}
-```
-
-### Langkah 8: Update Views untuk Papar Nama Author
-
-Edit `resources/views/posts/index.blade.php`:
+Buat `resources/views/dashboard.blade.php`:
 
 ```blade
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Posts') }}
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            {{ __('Dashboard') }}
         </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <a href="{{ route('posts.create') }}" class="mb-4 inline-block bg-blue-500 text-white px-4 py-2 rounded">
-                        Create New Post
-                    </a>
-
-                    @forelse($posts as $post)
-                        <div class="mb-4 border-b pb-4">
-                            <h3 class="text-lg font-bold">{{ $post->title }}</h3>
-                            <p class="text-sm text-gray-600">
-                                By <strong>{{ $post->user->name }}</strong>
-                                on {{ $post->created_at->format('d/m/Y H:i') }}
-                            </p>
-                            <p class="mt-2">{{ Str::limit($post->content, 100) }}</p>
-
-                            <div class="mt-2">
-                                <a href="{{ route('posts.show', $post) }}" class="text-blue-500">View</a>
-                                @can('update', $post)
-                                    <a href="{{ route('posts.edit', $post) }}" class="text-yellow-500 ml-2">Edit</a>
-                                    <form action="{{ route('posts.destroy', $post) }}" method="POST" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-500 ml-2">Delete</button>
-                                    </form>
-                                @endcan
+            <!-- Baris 1: Statistik Utama -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- Jumlah Pembayar -->
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 text-gray-900 dark:text-gray-100">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Jumlah Pembayar Berdaftar</p>
+                                <p class="text-3xl font-bold mt-2">{{ $jumlahPembayar }}</p>
                             </div>
+                            <div class="text-4xl">👥</div>
                         </div>
-                    @empty
-                        <p>No posts found</p>
-                    @endforelse
+                        <a href="{{ route('pembayar.index') }}" class="text-blue-600 dark:text-blue-400 text-sm mt-4 inline-block">
+                            Lihat Semua →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Jumlah Kutipan -->
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 text-gray-900 dark:text-gray-100">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Jumlah Kutipan Zakat (RM)</p>
+                                <p class="text-3xl font-bold mt-2">RM {{ number_format($jumlahKutipan, 2) }}</p>
+                            </div>
+                            <div class="text-4xl">💰</div>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-400 text-xs mt-4">
+                            Dari {{ Illuminate\Support\Facades\DB::table('pembayaran')->count() }} pembayaran
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Baris 2: Kutipan Mengikut Jenis Zakat -->
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <h3 class="text-lg font-semibold mb-4">Kutipan Mengikut Jenis Zakat</h3>
+
+                    @if($kutipanPerJenis->isEmpty())
+                        <p class="text-gray-600 dark:text-gray-400">Tiada data kutipan</p>
+                    @else
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-100 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Jenis Zakat</th>
+                                        <th class="px-4 py-2 text-right text-sm font-semibold">Jumlah (RM)</th>
+                                        <th class="px-4 py-2 text-right text-sm font-semibold">Bilangan Bayar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($kutipanPerJenis as $jenis)
+                                        <tr class="border-t border-gray-200 dark:border-gray-700">
+                                            <td class="px-4 py-3">{{ $jenis['nama'] }}</td>
+                                            <td class="px-4 py-3 text-right font-semibold">
+                                                RM {{ number_format($jenis['jumlah'], 2) }}
+                                            </td>
+                                            <td class="px-4 py-3 text-right">{{ $jenis['bilangan'] }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Baris 3: Pembayaran Terkini -->
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <h3 class="text-lg font-semibold mb-4">Pembayaran Terkini (5 Terakhir)</h3>
+
+                    @if($pembayaranTerkini->isEmpty())
+                        <p class="text-gray-600 dark:text-gray-400">Tiada pembayaran dicatat</p>
+                    @else
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-100 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">No. Resit</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Pembayar</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Jenis Zakat</th>
+                                        <th class="px-4 py-2 text-right text-sm font-semibold">Jumlah (RM)</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Tarikh</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($pembayaranTerkini as $pembayaran)
+                                        <tr class="border-t border-gray-200 dark:border-gray-700">
+                                            <td class="px-4 py-3 font-mono text-sm">{{ $pembayaran->no_resit }}</td>
+                                            <td class="px-4 py-3">{{ $pembayaran->pembayar->nama }}</td>
+                                            <td class="px-4 py-3">{{ $pembayaran->jenisZakat->nama }}</td>
+                                            <td class="px-4 py-3 text-right font-semibold">
+                                                RM {{ number_format($pembayaran->jumlah, 2) }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                {{ \Carbon\Carbon::parse($pembayaran->tarikh_bayar)->format('d/m/Y') }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4">
+                            <a href="{{ route('pembayaran.index') }}" class="text-blue-600 dark:text-blue-400 text-sm">
+                                Lihat Semua Pembayaran →
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1277,969 +956,727 @@ Edit `resources/views/posts/index.blade.php`:
 </x-app-layout>
 ```
 
-Edit `resources/views/posts/show.blade.php`:
-
-```blade
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ $post->title }}
-        </h2>
-    </x-slot>
-
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <p class="text-sm text-gray-600 mb-4">
-                        By <strong>{{ $post->user->name }}</strong>
-                        on {{ $post->created_at->format('d/m/Y H:i') }}
-                    </p>
-
-                    <div class="mt-4">
-                        {{ $post->content }}
-                    </div>
-
-                    <div class="mt-6">
-                        <a href="{{ route('posts.index') }}" class="text-blue-500">Back to Posts</a>
-                        @can('update', $post)
-                            <a href="{{ route('posts.edit', $post) }}" class="text-yellow-500 ml-4">Edit</a>
-                        @endcan
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</x-app-layout>
-```
-
-### Langkah 9: Test
-
-1. Login sebagai user pertama
-2. Create post baru
-3. Logout dan login sebagai user lain
-4. Coba edit post user pertama - sepatutnya dapat error 403
-
 ---
 
-## Modul 4.4: Amalan Terbaik dan Deployment
+## Lab 4.1: Pasang Laravel Breeze
 
-### Security Best Practices
+### Langkah Demi Langkah
 
-#### 1. Protect .env File
-
-File `.env` mengandung sensitif data seperti database password, API keys, dll.
+#### Langkah 1: Buka Terminal
 
 ```bash
-# Jangan pernah commit .env ke git
-# Dalam .gitignore:
-.env
-.env.local
-.env.*.php
+cd /path/ke/projek/anda
 ```
 
-#### 2. Environment Configurations
-
-```php
-// Jangan hardcode values
-// JANGAN:
-$password = 'root123';
-
-// BETUL:
-$password = env('DB_PASSWORD');
-```
-
-#### 3. Validate dan Sanitize Input
-
-```php
-// Validate input
-$validated = $request->validate([
-    'email' => 'required|email',
-    'password' => 'required|min:8'
-]);
-
-// Sanitize data sebelum simpan
-$data = $request->sanitize();
-```
-
-#### 4. CSRF Protection
-
-Laravel automatically protect CSRF attacks. Pastikan token ada dalam forms:
-
-```blade
-<form method="POST">
-    @csrf  <!-- Important! -->
-    <!-- form fields -->
-</form>
-```
-
-#### 5. Secure Passwords
-
-```php
-// Hash passwords
-$password = Hash::make('plaintext');
-
-// Check password
-if (Hash::check('plaintext', $hashed)) {
-    // Passwords match
-}
-```
-
-### Naming Conventions
-
-#### Table Names (plural, snake_case)
-```
-users
-posts
-comments
-user_posts (pivot table)
-```
-
-#### Column Names (singular, snake_case)
-```
-user_id (foreign key)
-created_at
-updated_at
-is_active
-```
-
-#### Model Names (singular, PascalCase)
-```
-User
-Post
-Comment
-```
-
-#### Controller Names (PascalCase)
-```
-PostController
-UserController
-CommentController
-ApiPostController
-```
-
-#### Method Names (camelCase)
-```
-getActivePosts()
-createNewUser()
-updateUserEmail()
-```
-
-#### Route Names (kebab-case)
-```
-posts.index
-posts.create
-posts.show
-posts.edit
-posts.update
-posts.destroy
-```
-
-### Form Request Classes
-
-Alih-alih validate dalam controller, guna Form Requests untuk clean code:
+#### Langkah 2: Pasang Breeze via Composer
 
 ```bash
-php artisan make:request StorePostRequest
+composer require laravel/breeze --dev
 ```
 
-```php
-<?php
+Tunggu sehingga selesai. Anda sepatutnya melihat:
 
-namespace App\Http\Requests;
-
-use Illuminate\Foundation\Http\FormRequest;
-
-class StorePostRequest extends FormRequest
-{
-    public function authorize(): bool
-    {
-        return auth()->check();
-    }
-
-    public function rules(): array
-    {
-        return [
-            'title' => 'required|string|max:255',
-            'content' => 'required|string'
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            'title.required' => 'Title is required',
-            'content.required' => 'Content is required'
-        ];
-    }
-}
+```
+Using version ^1.0 for laravel/breeze
+...
+[OK] Package installed successfully.
 ```
 
-Guna dalam controller:
-
-```php
-public function store(StorePostRequest $request)
-{
-    // Data sudah validated
-    $validated = $request->validated();
-
-    Post::create($validated);
-
-    return redirect()->route('posts.index');
-}
-```
-
-### Caching
-
-Caching mempercepat aplikasi dengan menyimpan data expensive operations.
-
-```php
-// Cache data selama 60 minit
-$posts = cache()->remember('all_posts', 60 * 60, function () {
-    return Post::all();
-});
-
-// Atau guna helper:
-$posts = cache('all_posts') ?? Post::all();
-
-// Clear cache
-cache()->forget('all_posts');
-cache()->flush(); // Clear semua cache
-```
-
-### Common Artisan Commands
+#### Langkah 3: Jalankan Arisan Breeze
 
 ```bash
-# Database
-php artisan migrate              # Run migrations
-php artisan migrate:refresh      # Rollback dan run semula
-php artisan migrate:fresh        # Fresh database (delete semua)
-php artisan migrate:rollback     # Undo last migration
-php artisan seed                 # Run seeders
-php artisan tinker               # Interactive shell
-
-# Cache
-php artisan cache:clear          # Clear app cache
-php artisan config:cache         # Cache configuration
-php artisan route:cache          # Cache routes
-php artisan view:cache           # Cache views
-
-# Generate
-php artisan make:model Post      # Create model
-php artisan make:controller PostController  # Create controller
-php artisan make:migration create_posts_table  # Create migration
-php artisan make:request StorePostRequest  # Create form request
-
-# Development
-php artisan serve                # Run development server
-php artisan optimize             # Optimize application
-php artisan storage:link         # Link storage directory
-
-# List
-php artisan route:list           # List semua routes
-php artisan command:list         # List semua commands
+php artisan breeze:install blade
 ```
 
-### Deployment Options
+Anda akan ditanya pilihan:
+- **Dark mode support?** - Jawab `yes` atau `no` (pilihan anda)
+- **ESM with SSR?** - Jawab `no` (tidak diperlukan)
 
-#### 1. Shared Hosting (Using cPanel)
-
-**Pros**:
-- Murah
-- Mudah setup
-- Shared resources
-
-**Cons**:
-- Limited control
-- Shared server performance
-- Tidak ideal untuk aplikasi besar
-
-**Deployment Steps**:
-1. Upload files ke `/public_html` folder
-2. Copy `.env.example` jadi `.env`
-3. Generate app key: `php artisan key:generate`
-4. Setup database
-5. Run migrations: `php artisan migrate`
-
-#### 2. Laravel Forge
-
-**Pros**:
-- Managed hosting
-- Auto deployment dari GitHub
-- Auto SSL certificates
-- Server management tools
-
-**Cons**:
-- Lebih mahal
-- Overkill untuk project kecil
-
-**Website**: https://forge.laravel.com
-
-#### 3. Railway.app / Vercel / Heroku
-
-**Pros**:
-- Free tier available
-- Easy deployment
-- Auto scaling
-- Modern infrastructure
-
-**Cons**:
-- Limited free resources
-- Database limitations
-
-**Railway Deployment** (recommended untuk beginners):
-1. Push code ke GitHub
-2. Signup di railway.app
-3. Connect GitHub repository
-4. Set environment variables
-5. Deploy
-
----
-
-## Lab 4.4: Setup Deployment (Railway)
-
-Mari kita prepare aplikasi untuk deployment ke Railway.
-
-### Langkah 1: Prepare untuk Production
+#### Langkah 4: Pasang Dependensi Node (Jika Perlu)
 
 ```bash
-# Generate app key (jika belum)
-php artisan key:generate
-
-# Clear cache
-php artisan cache:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-### Langkah 2: Create Production .env File
-
-Buat file `.env.production`:
-
-```bash
-APP_NAME=Blog
-APP_ENV=production
-APP_KEY=base64:xxxxx (sama seperti .env)
-APP_DEBUG=false
-APP_URL=https://yourdomain.com
-
-DB_CONNECTION=mysql
-DB_HOST=your-db-host
-DB_PORT=3306
-DB_DATABASE=your_db_name
-DB_USERNAME=your_db_user
-DB_PASSWORD=your_db_password
-
-CACHE_DRIVER=file
-SESSION_DRIVER=file
-QUEUE_DRIVER=sync
-```
-
-### Langkah 3: Commit ke GitHub
-
-```bash
-git add .
-git commit -m "Prepare for deployment"
-git push origin main
-```
-
-### Langkah 4: Deploy ke Railway
-
-1. Pergi ke railway.app
-2. Click "Start New Project"
-3. Pilih "Deploy from GitHub repo"
-4. Select your repository
-5. Configure environment variables
-6. Deploy!
-
----
-
-## Projek Akhir: Aplikasi Blog Lengkap
-
-Sekarang mari kita cipta aplikasi blog yang LENGKAP dengan semua features!
-
-### Requirements Checklist
-
-Aplikasi blog anda harus mempunyai:
-
-#### Authentication & Authorization
-- [x] User registration
-- [x] User login/logout
-- [x] Password hashing
-- [x] User can only edit/delete own posts
-
-#### Posts Management
-- [x] Create post (authenticated users only)
-- [x] Read/view all posts
-- [x] Read/view single post with author info
-- [x] Update post (only owner)
-- [x] Delete post (only owner)
-- [x] Posts displayed with author name dan creation date
-
-#### API (Optional but recommended)
-- [x] REST API untuk posts (GET, POST, PUT, DELETE)
-- [x] JSON responses dengan proper status codes
-- [x] API documentation
-
-#### User Experience
-- [x] Navigation bar dengan auth status
-- [x] Dashboard untuk logged-in users
-- [x] Flash messages untuk success/error
-- [x] Form validation dengan error messages
-- [x] Responsive design (Bootstrap or Tailwind)
-
-#### Database
-- [x] Users table dengan proper fields
-- [x] Posts table dengan user_id foreign key
-- [x] Timestamps (created_at, updated_at)
-
-### Step-by-Step Implementation
-
-#### Step 1: Verify All Migrations
-
-```bash
-php artisan migrate:fresh
-```
-
-Semua tables sepatutnya sudah ada.
-
-#### Step 2: Create Sample Data (Seeders)
-
-```bash
-php artisan make:seeder UserSeeder
-php artisan make:seeder PostSeeder
-```
-
-Edit `database/seeders/UserSeeder.php`:
-
-```php
-<?php
-
-namespace Database\Seeders;
-
-use App\Models\User;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-
-class UserSeeder extends Seeder
-{
-    public function run(): void
-    {
-        User::create([
-            'name' => 'Mohd Ali',
-            'email' => 'ali@example.com',
-            'password' => Hash::make('password123')
-        ]);
-
-        User::create([
-            'name' => 'Siti Zainab',
-            'email' => 'siti@example.com',
-            'password' => Hash::make('password123')
-        ]);
-    }
-}
-```
-
-Edit `database/seeders/PostSeeder.php`:
-
-```php
-<?php
-
-namespace Database\Seeders;
-
-use App\Models\Post;
-use App\Models\User;
-use Illuminate\Database\Seeder;
-
-class PostSeeder extends Seeder
-{
-    public function run(): void
-    {
-        $users = User::all();
-
-        foreach ($users as $user) {
-            Post::create([
-                'title' => 'Post pertama dari ' . $user->name,
-                'content' => 'Ini adalah post pertama dari ' . $user->name,
-                'user_id' => $user->id
-            ]);
-        }
-    }
-}
-```
-
-Edit `database/seeders/DatabaseSeeder.php`:
-
-```php
-<?php
-
-namespace Database\Seeders;
-
-use Illuminate\Database\Seeder;
-
-class DatabaseSeeder extends Seeder
-{
-    public function run(): void
-    {
-        $this->call([
-            UserSeeder::class,
-            PostSeeder::class,
-        ]);
-    }
-}
-```
-
-Run seeders:
-
-```bash
-php artisan db:seed
-```
-
-#### Step 3: Update Views
-
-Pastikan semua views sudah proper:
-
-- `resources/views/posts/index.blade.php` - List all posts dengan author info
-- `resources/views/posts/create.blade.php` - Form untuk create post
-- `resources/views/posts/edit.blade.php` - Form untuk edit post
-- `resources/views/posts/show.blade.php` - Single post view dengan author
-
-#### Step 4: Test Everything
-
-```bash
-# Run development server
-php artisan serve
-
-# Di terminal lain
-npm run dev
-```
-
-Test semua functionality:
-- Register new user
-- Login
-- Create post
-- Edit own post
-- Try edit other user's post (should fail)
-- Delete post
-- Logout
-
-#### Step 5: Test API
-
-Guna Thunder Client atau cURL untuk test semua API endpoints:
-
-```bash
-# GET all posts
-curl http://localhost:8000/api/posts
-
-# Create post
-curl -X POST http://localhost:8000/api/posts \
-  -H "Content-Type: application/json" \
-  -d '{"title":"API Post","content":"Created via API"}'
-
-# Update post
-curl -X PUT http://localhost:8000/api/posts/1 \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated Title"}'
-
-# Delete post
-curl -X DELETE http://localhost:8000/api/posts/1
-```
-
-### Bonus Challenges (Optional)
-
-Jika anda ingin lebih challenge, coba features ini:
-
-#### 1. Categories/Tags
-
-```bash
-# Create model dan migration
-php artisan make:model Category -m
-php artisan make:model Tag -m
-
-# Create many-to-many relationship
-php artisan make:migration create_post_tag_table
-```
-
-Cipta relationship:
-```php
-// Post model
-public function tags()
-{
-    return $this->belongsToMany(Tag::class);
-}
-
-// Tag model
-public function posts()
-{
-    return $this->belongsToMany(Post::class);
-}
-```
-
-#### 2. Comments
-
-```bash
-php artisan make:model Comment -m
-```
-
-Migration:
-```php
-Schema::create('comments', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->constrained()->onDelete('cascade');
-    $table->foreignId('post_id')->constrained()->onDelete('cascade');
-    $table->text('content');
-    $table->timestamps();
-});
-```
-
-Relationships:
-```php
-// Post model
-public function comments()
-{
-    return $this->hasMany(Comment::class);
-}
-
-// Comment model
-public function post()
-{
-    return $this->belongsTo(Post::class);
-}
-
-public function user()
-{
-    return $this->belongsTo(User::class);
-}
-```
-
-#### 3. Image Upload
-
-```bash
-php artisan storage:link
-```
-
-Migration:
-```php
-$table->string('image_path')->nullable();
-```
-
-Controller:
-```php
-if ($request->hasFile('image')) {
-    $path = $request->file('image')->store('posts', 'public');
-    $validated['image_path'] = $path;
-}
-```
-
-View:
-```blade
-@if($post->image_path)
-    <img src="{{ asset('storage/' . $post->image_path) }}" alt="{{ $post->title }}">
-@endif
-```
-
-#### 4. Search/Filter
-
-```php
-public function index(Request $request)
-{
-    $query = Post::with('user');
-
-    if ($request->has('search')) {
-        $query->where('title', 'like', '%' . $request->search . '%')
-              ->orWhere('content', 'like', '%' . $request->search . '%');
-    }
-
-    $posts = $query->get();
-
-    return view('posts.index', compact('posts'));
-}
-```
-
-#### 5. Pagination
-
-```php
-public function index()
-{
-    $posts = Post::paginate(10);
-    return view('posts.index', compact('posts'));
-}
-```
-
-View:
-```blade
-{{ $posts->links() }}
-```
-
----
-
-## Rujukan Pantas Artisan
-
-Semua command artisan yang kita pelajari dalam kursus ini:
-
-| Command | Kegunaan |
-|---------|----------|
-| `php artisan serve` | Jalankan development server |
-| `php artisan migrate` | Run database migrations |
-| `php artisan migrate:fresh` | Refresh database (delete all) |
-| `php artisan migrate:rollback` | Undo migrations |
-| `php artisan make:model Post` | Create model |
-| `php artisan make:model Post -m` | Create model with migration |
-| `php artisan make:controller PostController` | Create controller |
-| `php artisan make:controller Api/PostController --api` | Create API controller |
-| `php artisan make:migration create_posts_table` | Create migration |
-| `php artisan make:request StorePostRequest` | Create form request |
-| `php artisan make:policy PostPolicy --model=Post` | Create authorization policy |
-| `php artisan make:seeder UserSeeder` | Create seeder |
-| `php artisan db:seed` | Run seeders |
-| `php artisan breeze:install blade` | Install Laravel Breeze |
-| `php artisan cache:clear` | Clear application cache |
-| `php artisan config:cache` | Cache configuration |
-| `php artisan route:cache` | Cache routes |
-| `php artisan view:cache` | Cache views |
-| `php artisan optimize` | Optimize application |
-| `php artisan route:list` | List all routes |
-| `php artisan tinker` | Interactive shell |
-| `php artisan key:generate` | Generate application key |
-| `php artisan storage:link` | Link storage directory |
-| `composer require package/name` | Install composer package |
-| `npm install` | Install npm packages |
-| `npm run dev` | Run development mode |
-| `npm run build` | Build for production |
-
----
-
-## Ringkasan dan Langkah Seterusnya
-
-Tahniah! Anda sudah menyelesaikan kursus Laravel 4 Hari!
-
-### Apa yang anda sudah pelajari:
-
-**Hari 1: Basics**
-- Laravel structure dan MVC pattern
-- Routing dan controllers
-- Database setup dengan Eloquent ORM
-- Models dan migrations
-
-**Hari 2: Forms & Validation**
-- Creating forms dengan Blade
-- Form validation
-- CRUD operations
-- Displaying data dalam views
-
-**Hari 3: Relationships & Advanced Features**
-- Model relationships (hasMany, belongsTo)
-- Eloquent query builders
-- Advanced form handling
-- File uploads
-
-**Hari 4: Authentication & Deployment**
-- Laravel Breeze authentication
-- Building RESTful APIs
-- User authorization dengan policies
-- Deployment strategies
-
-### Langkah Seterusnya untuk Lanjut Belajar:
-
-#### 1. **Laravel Livewire**
-Framework untuk membina reactive components dalam Blade tanpa JavaScript.
-
-```bash
-composer require livewire/livewire
-```
-
-Dengan Livewire, anda boleh membuat interactive features seperti real-time search, notifications, dll.
-
-**Resource**: https://livewire.laravel.com
-
-#### 2. **Inertia.js**
-Kombinasi Laravel backend dengan Vue/React frontend.
-
-Sesuai untuk membina Single Page Applications (SPAs) dengan power Laravel.
-
-**Resource**: https://inertiajs.com
-
-#### 3. **Filament**
-Admin dashboard builder untuk Laravel.
-
-Cipta admin panel dalam minit, bukan hari!
-
-**Resource**: https://filamentphp.com
-
-#### 4. **Laravel Pint**
-Code style formatter untuk Laravel.
-
-```bash
-composer require laravel/pint --dev
-./vendor/bin/pint
-```
-
-#### 5. **Testing dengan PHPUnit**
-
-Tulis automated tests untuk code anda:
-
-```bash
-php artisan make:test PostControllerTest
-php artisan test
-```
-
-#### 6. **Database Query Optimization**
-
-Pelajari N+1 problem dan cara solve dengan eager loading:
-
-```php
-// Bad - N+1 problem
-$posts = Post::all();
-foreach ($posts as $post) {
-    echo $post->user->name;  // Query ke database setiap iteration
-}
-
-// Good - Eager loading
-$posts = Post::with('user')->get();
-```
-
-#### 7. **Laravel Community Malaysia**
-
-Join komunitas Laravel Malaysia untuk networking dan learning:
-
-- **GitHub**: Search "Laravel Malaysia"
-- **Facebook**: Laravel Malaysia Developer Group
-- **Discord**: Laravel Asia community
-- **Twitter**: Follow @laravelmalaysia
-
-#### 8. **Real-world Projects**
-
-Cubalah membuat projects sendiri:
-
-1. **Todo App** - Pelajari CRUD, user tasks
-2. **E-commerce** - Products, cart, payments
-3. **Forum** - Topics, posts, comments, user profiles
-4. **Social Media** - Posts, likes, comments, followers
-5. **CMS** - Content management system
-
-### Recommended Learning Resources:
-
-1. **Official Laravel Documentation**
-   - https://laravel.com/docs
-   - Lengkap dan always updated
-
-2. **Laracasts**
-   - https://laracasts.com
-   - Video tutorials dari Jeffrey Way
-   - Mulai dari basic hingga advanced
-
-3. **Laravel News**
-   - https://laravel-news.com
-   - Artikel, tips, dan latest updates
-
-4. **YouTube Channels**
-   - "Traversy Media" - General web dev
-   - "Codewithdary" - Laravel tutorials
-   - "Web Dev Simplified" - JavaScript fundamentals
-
-5. **Book: "Laravel Up and Running"**
-   - Oleh Matt Stauffer
-   - Comprehensive guide untuk Laravel
-
----
-
-## Final Checklist - Pastikan Semua Siap:
-
-Sebelum anda submit projek final atau deploy ke production:
-
-- [ ] Semua CRUD operations berfungsi dengan baik
-- [ ] Authentication dan authorization bekerja
-- [ ] API endpoints tested dan working
-- [ ] Database migrations berjalan tanpa error
-- [ ] Views di-design dan responsive
-- [ ] Validation bekerja untuk semua forms
-- [ ] Flash messages di-display untuk success/error
-- [ ] .env file sudah di-exclude dari git
-- [ ] No hardcoded values dalam code
-- [ ] Proper naming conventions digunakan
-- [ ] Comments/documentation dalam code yang complex
-- [ ] Testing dilakukan (manual atau automated)
-- [ ] Database seeders ready untuk development
-
----
-
-## Troubleshooting Guide - Common Issues
-
-### Issue: "Class not found" Error
-
-**Solution**:
-```bash
-composer dump-autoload
-php artisan cache:clear
-```
-
-### Issue: Database Connection Error
-
-**Solution**:
-1. Pastikan MySQL running
-2. Check .env file untuk correct database credentials
-3. Pastikan database sudah dibuat
-4. Run: `php artisan migrate`
-
-### Issue: CSRF Token Mismatch
-
-**Solution**:
-Pastikan form punya `@csrf` token:
-```blade
-<form method="POST">
-    @csrf
-    <!-- fields -->
-</form>
-```
-
-### Issue: 403 Forbidden pada Edit/Delete
-
-**Solution**:
-Ini adalah by design untuk authorization. Check:
-1. User sudah login
-2. User adalah owner post
-3. Policy di-authorize dengan betul
-
-### Issue: API Returns 404
-
-**Solution**:
-```bash
-# Check routes
-php artisan route:list
-
-# Pastikan controller dan route define dengan betul
-# Pastikan URL sama seperti dalam route
-```
-
-### Issue: npm run build tidak jalan
-
-**Solution**:
-```bash
-# Clear dan reinstall
-rm -rf node_modules package-lock.json
 npm install
 npm run build
 ```
 
+#### Langkah 5: Jalankan Migrasi
+
+```bash
+php artisan migrate
+```
+
+Ini akan mencipta jadual `users`, `password_reset_tokens`, dan `sessions`.
+
+#### Langkah 6: Mulai Server
+
+```bash
+php artisan serve
+```
+
+Sekarang akses `http://localhost:8000/register` untuk mendaftar pengguna pertama.
+
+#### Langkah 7: Daftar Pengguna Admin
+
+1. Pergi ke `http://localhost:8000/register`
+2. Masukkan nama, email, dan kata laluan
+3. Klik Register
+4. Anda sekarang boleh login
+
 ---
 
-## Terima Kasih!
+## Lab 4.2: Modul Pembayaran
 
-Terima kasih sudah mengikuti kursus Laravel 4 Hari. Semoga kursus ini membantu anda untuk memahami Laravel dan membina aplikasi web yang powerful.
+### Membuat PembayaranController
 
-**Jangan lupa**:
-- Practice membuat projects
-- Read official documentation
-- Join Laravel community
-- Share your projects di GitHub
-- Terus belajar dan improve skills
+```bash
+php artisan make:controller PembayaranController --resource
+```
 
-Selamat berjaya dalam journey Laravel anda!
+Isi `app/Http/Controllers/PembayaranController.php`:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Pembayaran;
+use App\Models\Pembayar;
+use App\Models\JenisZakat;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
+
+class PembayaranController extends Controller
+{
+    /**
+     * Senarai pembayaran
+     */
+    public function index(Request $request): View
+    {
+        $search = $request->input('search');
+        $query = Pembayaran::with('pembayar', 'jenisZakat');
+
+        if ($search) {
+            $query->whereHas('pembayar', function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%');
+            })->orWhere('no_resit', 'like', '%' . $search . '%');
+        }
+
+        $pembayarans = $query->latest()->paginate(15);
+
+        return view('pembayaran.index', [
+            'pembayarans' => $pembayarans,
+            'search' => $search
+        ]);
+    }
+
+    /**
+     * Bentuk tambah pembayaran baru
+     */
+    public function create(): View
+    {
+        $pembayars = Pembayar::orderBy('nama')->get();
+        $jenisZakats = JenisZakat::all();
+
+        return view('pembayaran.create', [
+            'pembayars' => $pembayars,
+            'jenisZakats' => $jenisZakats
+        ]);
+    }
+
+    /**
+     * Simpan pembayaran baru
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'pembayar_id' => 'required|exists:pembayar,id',
+            'jenis_zakat_id' => 'required|exists:jenis_zakat,id',
+            'jumlah' => 'required|numeric|min:0.01',
+            'cara_bayar' => 'required|in:tunai,cek,transfer',
+            'tarikh_bayar' => 'required|date'
+        ]);
+
+        // Auto-generate no_resit
+        $tahun = date('Y');
+        $bulan = date('m');
+        $bilangan = Pembayaran::whereYear('created_at', $tahun)
+                              ->whereMonth('created_at', $bulan)
+                              ->count() + 1;
+        $validated['no_resit'] = 'RST-' . $tahun . $bulan . '-' . str_pad($bilangan, 4, '0', STR_PAD_LEFT);
+
+        Pembayaran::create($validated);
+
+        return redirect()->route('pembayaran.index')
+                       ->with('success', 'Pembayaran berjaya ditambah');
+    }
+
+    /**
+     * Paparan detail pembayaran
+     */
+    public function show(Pembayaran $pembayaran): View
+    {
+        $pembayaran->load('pembayar', 'jenisZakat');
+
+        return view('pembayaran.show', ['pembayaran' => $pembayaran]);
+    }
+
+    /**
+     * Bentuk kemaskini pembayaran
+     */
+    public function edit(Pembayaran $pembayaran): View
+    {
+        $pembayars = Pembayar::orderBy('nama')->get();
+        $jenisZakats = JenisZakat::all();
+
+        return view('pembayaran.edit', [
+            'pembayaran' => $pembayaran,
+            'pembayars' => $pembayars,
+            'jenisZakats' => $jenisZakats
+        ]);
+    }
+
+    /**
+     * Kemaskini pembayaran
+     */
+    public function update(Request $request, Pembayaran $pembayaran): RedirectResponse
+    {
+        $validated = $request->validate([
+            'pembayar_id' => 'required|exists:pembayar,id',
+            'jenis_zakat_id' => 'required|exists:jenis_zakat,id',
+            'jumlah' => 'required|numeric|min:0.01',
+            'cara_bayar' => 'required|in:tunai,cek,transfer',
+            'tarikh_bayar' => 'required|date'
+        ]);
+
+        $pembayaran->update($validated);
+
+        return redirect()->route('pembayaran.show', $pembayaran)
+                       ->with('success', 'Pembayaran berjaya dikemaskini');
+    }
+
+    /**
+     * Padam pembayaran
+     */
+    public function destroy(Pembayaran $pembayaran): RedirectResponse
+    {
+        $pembayaran->delete();
+
+        return redirect()->route('pembayaran.index')
+                       ->with('success', 'Pembayaran berjaya dipadam');
+    }
+}
+```
+
+### Bentuk Pembayaran (Create)
+
+Buat `resources/views/pembayaran/create.blade.php`:
+
+```blade
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            {{ __('Tambah Pembayaran') }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <form method="POST" action="{{ route('pembayaran.store') }}">
+                        @csrf
+
+                        <!-- Pembayar -->
+                        <div class="mb-6">
+                            <label for="pembayar_id" class="block text-sm font-medium mb-2">
+                                Pembayar <span class="text-red-500">*</span>
+                            </label>
+                            <select id="pembayar_id" name="pembayar_id" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" required>
+                                <option value="">-- Pilih Pembayar --</option>
+                                @foreach($pembayars as $pembayar)
+                                    <option value="{{ $pembayar->id }}">
+                                        {{ $pembayar->nama }} ({{ $pembayar->no_id }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('pembayar_id')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Jenis Zakat -->
+                        <div class="mb-6">
+                            <label for="jenis_zakat_id" class="block text-sm font-medium mb-2">
+                                Jenis Zakat <span class="text-red-500">*</span>
+                            </label>
+                            <select id="jenis_zakat_id" name="jenis_zakat_id" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" required>
+                                <option value="">-- Pilih Jenis Zakat --</option>
+                                @foreach($jenisZakats as $jenis)
+                                    <option value="{{ $jenis->id }}">{{ $jenis->nama }}</option>
+                                @endforeach
+                            </select>
+                            @error('jenis_zakat_id')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Jumlah -->
+                        <div class="mb-6">
+                            <label for="jumlah" class="block text-sm font-medium mb-2">
+                                Jumlah (RM) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" id="jumlah" name="jumlah" step="0.01"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded"
+                                   required value="{{ old('jumlah') }}">
+                            @error('jumlah')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Cara Bayar -->
+                        <div class="mb-6">
+                            <label for="cara_bayar" class="block text-sm font-medium mb-2">
+                                Cara Bayar <span class="text-red-500">*</span>
+                            </label>
+                            <select id="cara_bayar" name="cara_bayar" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" required>
+                                <option value="">-- Pilih Cara Bayar --</option>
+                                <option value="tunai">Tunai</option>
+                                <option value="cek">Cek</option>
+                                <option value="transfer">Transfer Bank</option>
+                            </select>
+                            @error('cara_bayar')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Tarikh Bayar -->
+                        <div class="mb-6">
+                            <label for="tarikh_bayar" class="block text-sm font-medium mb-2">
+                                Tarikh Bayar <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="tarikh_bayar" name="tarikh_bayar"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded"
+                                   required value="{{ old('tarikh_bayar', date('Y-m-d')) }}">
+                            @error('tarikh_bayar')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Butang -->
+                        <div class="flex gap-4">
+                            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Simpan Pembayaran
+                            </button>
+                            <a href="{{ route('pembayaran.index') }}" class="px-6 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                                Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</x-app-layout>
+```
+
+### Senarai Pembayaran (Index)
+
+Buat `resources/views/pembayaran/index.blade.php`:
+
+```blade
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            {{ __('Pembayaran Zakat') }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <!-- Butang Tambah & Carian -->
+                    <div class="flex justify-between items-center mb-6">
+                        <a href="{{ route('pembayaran.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            + Tambah Pembayaran
+                        </a>
+
+                        <form method="GET" action="{{ route('pembayaran.index') }}" class="flex gap-2">
+                            <input type="text" name="search" placeholder="Cari nama pembayar atau no. resit..."
+                                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded"
+                                   value="{{ $search }}">
+                            <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded">Cari</button>
+                        </form>
+                    </div>
+
+                    <!-- Jadual Pembayaran -->
+                    @if($pembayarans->isEmpty())
+                        <p class="text-gray-600 dark:text-gray-400">Tiada pembayaran dicatat</p>
+                    @else
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-100 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">No. Resit</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Pembayar</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Jenis Zakat</th>
+                                        <th class="px-4 py-2 text-right text-sm font-semibold">Jumlah (RM)</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Cara Bayar</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($pembayarans as $pembayaran)
+                                        <tr class="border-t border-gray-200 dark:border-gray-700">
+                                            <td class="px-4 py-3 font-mono text-sm">{{ $pembayaran->no_resit }}</td>
+                                            <td class="px-4 py-3">{{ $pembayaran->pembayar->nama }}</td>
+                                            <td class="px-4 py-3">{{ $pembayaran->jenisZakat->nama }}</td>
+                                            <td class="px-4 py-3 text-right font-semibold">
+                                                RM {{ number_format($pembayaran->jumlah, 2) }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded capitalize">
+                                                    {{ $pembayaran->cara_bayar }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 flex gap-2">
+                                                <a href="{{ route('pembayaran.show', $pembayaran) }}" class="text-blue-600 hover:underline">Lihat</a>
+                                                <a href="{{ route('pembayaran.edit', $pembayaran) }}" class="text-green-600 hover:underline">Edit</a>
+                                                <form method="POST" action="{{ route('pembayaran.destroy', $pembayaran) }}" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:underline" onclick="return confirm('Yakin?')">
+                                                        Padam
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="mt-4">
+                            {{ $pembayarans->links() }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</x-app-layout>
+```
 
 ---
 
-**Dibuat**: 6 April 2026
-**Version**: 1.0
-**Language**: Bahasa Melayu
-**Level**: Beginner to Intermediate
+## Lab 4.3: Bina Dashboard
+
+### Mendaftarkan Rute Dashboard
+
+Dalam `routes/web.php`, pastikan rute dashboard sudah ada:
+
+```php
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // ... rute lain
+});
+```
+
+### Mengakses Dashboard
+
+1. Login ke sistem: `http://localhost:8000/login`
+2. Akses dashboard: `http://localhost:8000/dashboard`
+3. Lihat statistik zakat yang dikemas kini secara automatik
+
+---
+
+## Lab 4.4: API & Ujian
+
+### Mendaftarkan Rute API
+
+Dalam `routes/api.php`:
+
+```php
+<?php
+
+use App\Http\Controllers\Api\PembayarApiController;
+use Illuminate\Support\Facades\Route;
+
+Route::apiResource('pembayar', PembayarApiController::class);
+Route::get('pembayar/{id}/pembayarans', [PembayarApiController::class, 'getPembayarans']);
+```
+
+### Menjalankan Server
+
+```bash
+php artisan serve
+```
+
+### Menguji API
+
+Gunakan Thunder Client atau curl seperti yang ditunjukkan dalam **Modul 4.3**.
+
+---
+
+## Modul 4.5: Penyebaran (Deployment)
+
+### Persiapan Penyebaran
+
+Sebelum menghantar ke production, lakukan:
+
+#### 1. Optimisasi Kod
+
+```bash
+# Compile config dan route
+php artisan config:cache
+php artisan route:cache
+
+# Optimize autoloader
+composer install --optimize-autoloader --no-dev
+```
+
+#### 2. Tetapkan Environment ke Production
+
+Dalam `.env`:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+```
+
+#### 3. Generate Application Key (Jika Belum)
+
+```bash
+php artisan key:generate
+```
+
+#### 4. Jalankan Migrasi di Server
+
+```bash
+php artisan migrate --force
+php artisan db:seed (opsional)
+```
+
+### Penyebaran ke Shared Hosting
+
+#### Langkah 1: Punya Akses SSH
+
+Hubungi penyedia hosting untuk mendapat akses SSH.
+
+#### Langkah 2: Upload Projek
+
+Gunakan FTP atau Git:
+
+```bash
+# Via Git (lebih mudah)
+git clone https://github.com/anda/projek.git
+cd projek
+composer install --optimize-autoloader --no-dev
+```
+
+#### Langkah 3: Konfigurasi Database
+
+1. Buat pangkalan data baru di cPanel
+2. Salin `.env.example` ke `.env`
+3. Atur database credentials:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=nama_db
+DB_USERNAME=pengguna_db
+DB_PASSWORD=kata_laluan_db
+```
+
+#### Langkah 4: Jalankan Migrasi
+
+```bash
+php artisan migrate --force
+```
+
+#### Langkah 5: Tetapkan Ownership & Permissions
+
+```bash
+chmod -R 755 storage bootstrap/cache
+chown -R www-data:www-data .
+```
+
+#### Langkah 6: Pointing Domain
+
+Dalam cPanel, arahkan domain ke folder `public/`.
+
+### Penyebaran dengan Laravel Forge
+
+**Laravel Forge** ialah platform yang memudahkan penyebaran Laravel.
+
+#### Langkah 1: Daftar Akaun Forge
+
+Pergi ke [forge.laravel.com](https://forge.laravel.com)
+
+#### Langkah 2: Tambah Server
+
+Pilih penyedia cloud (DigitalOcean, AWS, Linode, dll.)
+
+#### Langkah 3: Buat Site
+
+1. Klik "New Site"
+2. Pilih "New Laravel Project"
+3. Sambungkan repository GitHub anda
+
+#### Langkah 4: Deploy
+
+Forge secara otomatis akan:
+- Menjalankan `composer install`
+- Menjalankan `php artisan migrate`
+- Mengkonfigurasi SSL (Let's Encrypt)
+
+---
+
+## Projek Akhir Lengkap: Sistem Pengurusan Zakat
+
+### Ringkasan Ciri-ciri
+
+Selepas menyelesaikan 4 hari, anda mempunyai sistem yang lengkap:
+
+| Ciri | Status | Modul |
+|------|--------|-------|
+| **Pengesahan (Login/Register)** | Siap | 4.1 |
+| **CRUD Pembayar** | Siap | 1-3 |
+| **CRUD Pembayaran** | Siap | 4.2 |
+| **Jenis Zakat Management** | Siap | 1-3 |
+| **Dashboard & Laporan** | Siap | 4.4 |
+| **API RESTful** | Siap | 4.3 |
+| **Hubungan Model** | Siap | 4.2 |
+| **Deployment Ready** | Siap | 4.5 |
+
+### Struktur Projek Akhir
+
+```
+sistem-zakat/
+├── app/
+│   ├── Models/
+│   │   ├── Pembayar.php
+│   │   ├── Pembayaran.php
+│   │   └── JenisZakat.php
+│   └── Http/
+│       └── Controllers/
+│           ├── PembayarController.php
+│           ├── PembayaranController.php
+│           ├── DashboardController.php
+│           └── Api/
+│               └── PembayarApiController.php
+├── database/
+│   ├── migrations/
+│   │   ├── create_pembayar_table.php
+│   │   ├── create_jenis_zakat_table.php
+│   │   └── create_pembayaran_table.php
+│   └── seeders/
+│       └── DatabaseSeeder.php
+├── resources/
+│   └── views/
+│       ├── dashboard.blade.php
+│       ├── pembayar/
+│       │   ├── index.blade.php
+│       │   ├── create.blade.php
+│       │   ├── edit.blade.php
+│       │   └── show.blade.php
+│       └── pembayaran/
+│           ├── index.blade.php
+│           ├── create.blade.php
+│           ├── edit.blade.php
+│           └── show.blade.php
+├── routes/
+│   ├── web.php
+│   └── api.php
+└── .env
+```
+
+### Fitur Utama Sistem
+
+1. **Pengesahan Pengguna** - Hanya staf berdaftar boleh login
+2. **Pengurusan Pembayar** - Tambah, ubah, lihat, padam pembayar zakat
+3. **Pengurusan Pembayaran** - Rekod pembayaran zakat dengan auto-generate resit
+4. **Dashboard** - Paparan statistik zakat (jumlah pembayar, kutipan, jenis zakat)
+5. **API** - Akses data via REST API untuk integrasi mobile/pihak ketiga
+6. **Laporan** - Lihat pembayaran terkini dan statistik per jenis zakat
+
+---
+
+## Ringkasan & Langkah Seterusnya
+
+### Apa yang Telah Anda Pelajari
+
+| Konsep | Deskripsi |
+|--------|-----------|
+| **Authentication** | Sistem login/logout dengan Laravel Breeze |
+| **Eloquent Relationships** | Hubungan HasMany, BelongsTo antara model |
+| **RESTful API** | Membuat API JSON untuk akses data |
+| **Dashboard** | Paparan statistik dan laporan |
+| **Deployment** | Menghantar projek ke production |
+
+### Langkah Seterusnya untuk Pembelajaran Lebih Lanjut
+
+#### 1. Fitur Lanjutan
+
+- **Testing** - Belajar PHPUnit untuk unit testing dan feature testing
+- **Queue** - Proses pembayaran secara asinkron
+- **WebSocket** - Notifikasi real-time pembayaran baru
+
+#### 2. Keamanan
+
+- **Authorization** - Kawal akses berdasarkan peranan (admin, staff, viewer)
+- **Encryption** - Enkripsi data sensitif (no. ID, no. telefon)
+- **Two-Factor Authentication** - Keselamatan login berlapis
+
+#### 3. Prestasi
+
+- **Caching** - Cache data statistik dashboard
+- **Database Indexing** - Indexkan lajur sering dicari
+- **Pagination** - Bahagi data besar kepada halaman
+
+#### 4. Integrasi
+
+- **Email** - Hantar notifikasi pembayaran via email
+- **SMS** - Notifikasi SMS pembayaran
+- **Payment Gateway** - Integrasi FPX, Stripe, PayPal
+
+#### 5. Sumber Pembelajaran
+
+- **Dokumentasi Laravel** - https://laravel.com/docs
+- **Laracasts** - https://laracasts.com (video tutorial)
+- **Laravel News** - https://laravel-news.com
+- **Stack Overflow** - Tanya soalan komunitas
+
+### Tips Untuk Masa Depan
+
+1. **Version Control** - Guna Git untuk menguruskan kod
+2. **Documentation** - Tuliskan dokumentasi kod anda
+3. **Testing** - Sentiasa tulis test sebelum kod production
+4. **Code Review** - Minta review daripada rakan programmer
+5. **Performance** - Monitor prestasi menggunakan tools seperti New Relic
+
+---
+
+## Kesimpulan
+
+Tahniah! Anda telah menyelesaikan Kursus Laravel 4 Hari dan membina **Sistem Pengurusan Zakat** untuk **Pusat Zakat Negeri Kedah**.
+
+Sistem ini siap untuk digunakan oleh staf zakat untuk menguruskan pembayar, pembayaran, dan menjana laporan statistik. Dengan API yang tersedia, sistem juga boleh diperluas dengan aplikasi mobile atau integrasi lain.
+
+**Langkah seterusnya:**
+1. Tambahkan lebih banyak pengguna/staf
+2. Konfigurasi email untuk notifikasi
+3. Pasang ke server production
+4. Latih pengguna sistem
+5. Kembangkan fitur tambahan berdasarkan feedback
+
+Semoga projek ini membawa manfaat kepada Pusat Zakat Negeri Kedah dalam menguruskan zakat dengan lebih efisien!
+
+---
+
+**Dikemaskini:** 6 April 2026
+**Versi:** 1.0
+**Bahasa:** Bahasa Melayu

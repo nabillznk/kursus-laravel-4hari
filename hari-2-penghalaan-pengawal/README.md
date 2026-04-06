@@ -1,565 +1,184 @@
-# Hari 2: Penghalaan (Routing) dan Pengawal (Controllers)
+# Kursus Laravel 4 Hari | Pusat Zakat Negeri Kedah
 
-**Kursus Laravel 4 Hari | Peringkat Pemula | Laragon pada Windows**
+## Hari 2: Penghalaan (Routing) dan Pengawal (Controllers)
+
+**Tarikh:** Hari ke-2 dari 4 hari
+**Tema Projek:** Sistem Pengurusan Zakat
+**Organisasi:** Pusat Zakat Negeri Kedah
+**Prasyarat:** Projek `sistem-zakat` dari Hari 1, Laragon sedang berjalan
 
 ---
 
-## Pengenalan
+## Objektif Hari 2
 
-Pada Hari 2, kami akan mempelajari dua konsep asas dalam Laravel: **Penghalaan (Routing)** dan **Pengawal (Controllers)**. Penghalaan menentukan bagaimana permintaan pengguna dipetakan ke aplikasi, sementara Pengawal mengendalikan logik perniagaan untuk merespons permintaan tersebut.
+Selepas menyelesaikan hari ini, anda akan dapat:
 
-**Tujuan Pembelajaran:**
-- Memahami sistem penghalaan dalam Laravel
-- Membuat pelbagai jenis laluan (routes)
-- Membuat pengawal untuk mengendalikan permintaan
-- Memahami middleware dan cara kerjanya
-- Mengendalikan permintaan (request) dan respons (response)
-- Melaksanakan operasi CRUD yang lengkap
-
-**Prasyarat:**
-- Projek `blog` telah dibuat pada Hari 1
-- Laragon berjalan dengan sempurna
-- Pemahaman asas tentang PHP dan Laravel
+✅ Memahami cara mengatur penghalaan (routing) dalam Laravel
+✅ Menentukan kaedah HTTP (GET, POST, PUT, DELETE)
+✅ Membuat pengawal (controller) dengan kaedah sumber (resource methods)
+✅ Menggunakan middleware untuk keselamatan asas
+✅ Mengendalikan permintaan (request) dan tindak balas (response)
+✅ Membuat laluan CRUD lengkap untuk entiti Pembayar Zakat
 
 ---
 
 ## Modul 2.1: Asas Penghalaan (Routing)
 
-### Pengenalan Penghalaan
+### Apa itu Penghalaan?
 
-Penghalaan adalah proses mencocokkan URL permintaan dengan fungsi atau pengawal yang sepatutnya mengendalikan permintaan tersebut. Semua laluan dalam Laravel ditakrifkan dalam fail `routes/web.php`.
+Penghalaan (routing) adalah proses menentukan bagaimana aplikasi anda merespons kepada permintaan URL dari pelanggan. Setiap URL yang diakses melalui penyemak imbas mesti dirancang dalam laluan.
 
-**Mengapa Penghalaan Penting?**
-- Menentukan struktur URL aplikasi
-- Memisahkan logik aplikasi dari URL
-- Memudahkan pengurusan permintaan HTTP
-- Membolehkan parameter dinamik dalam URL
+Dalam Laravel, semua penghalaan ditakrifkan dalam fail `routes/web.php`.
 
-### Fail Laluan Utama
+### Fail Penghalaan Utama
 
 ```
-blog/
+projek-laravel/
 ├── routes/
-│   ├── web.php          ← Laluan web (yang kami gunakan)
-│   ├── api.php          ← Laluan API
-│   └── console.php      ← Perintah console
-└── ...
+│   ├── web.php          ← Semua penghalaan web berada di sini
+│   └── api.php          ← Untuk API (tidak digunakan hari ini)
 ```
 
-### Struktur Asas Laluan
+### Kaedah HTTP Asas
 
-Laluan dalam Laravel mengikuti format:
+| Kaedah | Tujuan | Contoh |
+|--------|--------|--------|
+| **GET** | Mengambil data, paparan halaman | GET `/pembayar` (lihat senarai pembayar) |
+| **POST** | Hantar data baru, buat rekod | POST `/pembayar` (simpan pembayar baru) |
+| **PUT/PATCH** | Kemaskini data sedia ada | PUT `/pembayar/1` (ubah pembayar ID 1) |
+| **DELETE** | Hapus data | DELETE `/pembayar/1` (buang pembayar ID 1) |
+
+### Contoh Penghalaan Asas
+
+#### 1. Penghalaan GET Ringkas
 
 ```php
-Route::METHOD(path, callback_atau_controller);
+Route::get('/pembayar', function () {
+    return 'Senarai semua pembayar zakat';
+});
 ```
 
-**METHOD** boleh menjadi:
-- `get` - Dapatkan data
-- `post` - Hantar data
-- `put` - Kemas kini keseluruhan data
-- `patch` - Kemas kini sebahagian data
-- `delete` - Hapus data
-- `any` - Menerima semua jenis permintaan
+**Penjelasan:**
+- `Route::get()` - Mendengar permintaan GET
+- `/pembayar` - Laluan URL
+- `function()` - Fungsi anonimous yang mengembalikan respons
 
-### 1. Laluan Asas dengan Closure
-
-**Fail:** `routes/web.php`
+#### 2. Penghalaan Dengan Parameter
 
 ```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// Laluan GET asas yang mengembalikan string
-Route::get('/', function () {
-    return 'Selamat datang ke Blog!';
+// Melihat satu pembayar mengikut ID
+Route::get('/pembayar/{id}', function ($id) {
+    return "Melihat pembayar dengan ID: $id";
 });
 
-// Laluan POST untuk menerima data
-Route::post('/submit', function () {
-    return 'Data telah diterima!';
-});
-
-// Laluan DELETE
-Route::delete('/item/{id}', function ($id) {
-    return "Item dengan ID $id telah dihapus!";
+// Melihat laporan pembayar dengan tahun
+Route::get('/pembayar/{id}/laporan/{tahun}', function ($id, $tahun) {
+    return "Laporan pembayar $id untuk tahun $tahun";
 });
 ```
 
-**Ujian Dalam Terminal:**
-```bash
-# Buka CMD atau PowerShell dalam folder blog
-cd C:\laragon\www\blog
+**Penjelasan:**
+- `{id}` - Parameter dinamik, boleh berupa sebarang nilai
+- Parameter mesti dihantar kepada fungsi dalam urutan yang sama
 
-# Jalankan pelayan penyelaras Laravel
-php artisan serve
-
-# Output dijangka:
-# Laravel development server started: http://127.0.0.1:8000
-```
-
-**Ujian Dalam Pelayar:**
-- Buka `http://127.0.0.1:8000` - Anda akan melihat "Selamat datang ke Blog!"
-
-### 2. Laluan Dengan Parameter
-
-Parameter membenarkan nilai dinamik dalam URL.
-
-**Fail:** `routes/web.php`
+#### 3. Kaedah Penghalaan Lain
 
 ```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// Parameter wajib
-Route::get('/posts/{id}', function ($id) {
-    return "Paparan jawatan dengan ID: $id";
+// POST - Untuk menghantar borang
+Route::post('/pembayar', function () {
+    return 'Pembayar baru disimpan';
 });
 
-// Parameter berbilang
-Route::get('/users/{user}/posts/{post}', function ($user, $post) {
-    return "Pengguna $user, Jawatan $post";
+// PUT - Untuk mengubah semua medan
+Route::put('/pembayar/{id}', function ($id) {
+    return "Pembayar $id telah dikemas kini";
 });
 
-// Parameter pilihan dengan tanda soal
-Route::get('/search/{query?}', function ($query = null) {
-    if ($query) {
-        return "Hasil carian untuk: $query";
-    }
-    return "Sila masukkan kata kunci carian";
+// DELETE - Untuk menghapus
+Route::delete('/pembayar/{id}', function ($id) {
+    return "Pembayar $id telah dihapus";
 });
-
-// Kekangan parameter dengan regex
-Route::get('/articles/{id}', function ($id) {
-    return "Artikel $id";
-})->where('id', '[0-9]+');  // Hanya nombor
 ```
 
-**Ujian:**
-```
-http://127.0.0.1:8000/posts/5
-→ Paparan jawatan dengan ID: 5
+### Laluan Bernama (Named Routes)
 
-http://127.0.0.1:8000/users/ali/posts/10
-→ Pengguna ali, Jawatan 10
-
-http://127.0.0.1:8000/search/laravel
-→ Hasil carian untuk: laravel
-
-http://127.0.0.1:8000/articles/123
-→ Artikel 123
-
-http://127.0.0.1:8000/articles/abc
-→ 404 Not Found (kerana tidak sepadan dengan [0-9]+)
-```
-
-### 3. Laluan Bernama (Named Routes)
-
-Laluan bernama memudahkan anda merujuk laluan dalam kod tanpa menulis URL secara terus.
-
-**Fail:** `routes/web.php`
+Laluan bernama memudahkan anda mereferensikan laluan dalam kod tanpa mengetik URL secara langsung.
 
 ```php
-<?php
+// Takrifkan laluan dengan nama
+Route::get('/pembayar/{id}', function ($id) {
+    return "Paparan pembayar $id";
+})->name('pembayar.show');
 
-use Illuminate\Support\Facades\Route;
-
-// Laluan bernama
-Route::get('/', function () {
-    return 'Laman Utama';
-})->name('home');
-
-Route::get('/about', function () {
-    return 'Tentang Kami';
-})->name('about');
-
-Route::get('/posts/{id}', function ($id) {
-    return "Jawatan $id";
-})->name('posts.show');
-
-Route::get('/contact', function () {
-    return 'Hubungi Kami';
-})->name('contact');
+// Dalam templat atau kod, gunakan helper route()
+echo route('pembayar.show', ['id' => 1]);
+// Keluaran: /pembayar/1
 ```
 
-**Menggunakan Laluan Bernama dalam Kod:**
+**Faedah:**
+- Jika anda menukar URL, anda tidak perlu mengubah semua pautan dalam kod
+- Lebih mudah dibaca dan diurus
+
+### Kumpulan Penghalaan (Route Groups)
+
+Kumpulkan penghalaan dengan prefiks atau middleware yang sama:
 
 ```php
-// Dalam controller atau view
-url('home')                    // → /
-route('about')                 // → /about
-route('posts.show', ['id' => 5])  // → /posts/5
-
-// Untuk membuat pautan dalam HTML
-<a href="{{ route('home') }}">Laman Utama</a>
-<a href="{{ route('posts.show', ['id' => 5]) }}">Baca Jawatan 5</a>
-```
-
-**Melihat Semua Laluan:**
-
-```bash
-# Dalam terminal
-php artisan route:list
-
-# Output dijangka:
-# +-------+----------+------+-------------+
-# | GET   | /        |      | home        |
-# | GET   | /about   |      | about       |
-# | GET   | /posts/{id}|   | posts.show  |
-# | GET   | /contact |      | contact     |
-# +-------+----------+------+-------------+
-```
-
-### 4. Kumpulan Laluan (Route Groups)
-
-Kumpulan laluan memudahkan anda menggunakan awalan biasa, middleware, atau namespace untuk berbilang laluan.
-
-**Fail:** `routes/web.php`
-
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// Kumpulan dengan awalan
-Route::prefix('admin')->group(function () {
-    Route::get('/dashboard', function () {
-        return 'Papan Pemuka Admin';
-    })->name('admin.dashboard');
-
-    Route::get('/users', function () {
-        return 'Senarai Pengguna';
-    })->name('admin.users');
-
-    Route::post('/users', function () {
-        return 'Pengguna baru dibuat';
-    })->name('admin.users.store');
-});
-
-// Kumpulan dengan middleware
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', function () {
-        return 'Profil Pengguna';
+Route::group(['prefix' => 'api'], function () {
+    Route::get('/pembayar', function () {
+        return 'Senarai pembayar (API)';
     });
 
-    Route::get('/settings', function () {
-        return 'Tetapan Pengguna';
+    Route::get('/pembayar/{id}', function ($id) {
+        return "Pembayar $id (API)";
     });
 });
 
-// Kumpulan gabungan
-Route::prefix('api')
-    ->middleware('api')
-    ->group(function () {
-        Route::get('/posts', function () {
-            return json_encode(['posts' => []]);
-        });
-    });
+// URL yang terhasil:
+// GET /api/pembayar
+// GET /api/pembayar/{id}
 ```
-
-**Laluan yang Dihasilkan:**
-
-```
-/admin/dashboard
-/admin/users (GET)
-/admin/users (POST)
-/profile
-/settings
-/api/posts
-```
-
-### 5. Kaedah Laluan HTTP
-
-Laravel menyokong semua kaedah HTTP utama:
-
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// GET - Dapatkan data
-Route::get('/posts', function () {
-    return 'Senarai semua jawatan';
-});
-
-// POST - Buat data baru
-Route::post('/posts', function () {
-    return 'Jawatan baru telah dibuat';
-});
-
-// PUT - Kemas kini seluruh sumber
-Route::put('/posts/{id}', function ($id) {
-    return "Jawatan $id telah dikemas kini sepenuhnya";
-});
-
-// PATCH - Kemas kini sebahagian sumber
-Route::patch('/posts/{id}', function ($id) {
-    return "Jawatan $id telah dikemas kini sebahagian";
-});
-
-// DELETE - Hapus sumber
-Route::delete('/posts/{id}', function ($id) {
-    return "Jawatan $id telah dihapus";
-});
-
-// Menerima berbilang kaedah
-Route::match(['get', 'post'], '/search', function () {
-    return 'Carian';
-});
-
-// Menerima semua kaedah
-Route::any('/test', function () {
-    return 'Mencapai dengan apa-apa kaedah HTTP';
-});
-```
-
-**Pengujian Kaedah POST, PUT, DELETE dengan Alat:**
-
-Gunakan alat seperti **Postman** atau **Thunder Client** (pelanjutan VS Code):
-
-```
-POST http://127.0.0.1:8000/posts
-PUT  http://127.0.0.1:8000/posts/1
-DELETE http://127.0.0.1:8000/posts/1
-```
-
-### Ringkasan Modul 2.1
-
-| Konsep | Contoh | Kegunaan |
-|--------|--------|----------|
-| Laluan Asas | `Route::get('/', fn => 'Hello')` | Laluan mudah |
-| Parameter | `Route::get('/posts/{id}', ...)` | Nilai dinamik dalam URL |
-| Bernama | `Route::get(...)->name('posts.show')` | Merujuk laluan dalam kod |
-| Kumpulan | `Route::prefix('admin')->group(...)` | Mengorganisir laluan |
-| Kaedah HTTP | `Route::post/put/delete/patch` | Operasi yang berbeza |
-
----
-
-## Lab 2.1: Cipta Pelbagai Laluan untuk Aplikasi Blog
-
-### Objektif
-
-Anda akan membuat sistem laluan lengkap untuk aplikasi blog dengan keupayaan:
-- Laman utama
-- Halaman tentang
-- Senarai jawatan
-- Paparan jawatan tunggal
-- Borang hubungan
-- Halaman admin
-
-### Langkah-Langkah
-
-**Langkah 1: Buka Fail `routes/web.php`**
-
-```bash
-# Buka folder projek dalam editor
-cd C:\laragon\www\blog
-code .
-```
-
-Atau buka fail secara manual:
-```
-C:\laragon\www\blog\routes\web.php
-```
-
-**Langkah 2: Hapus Kandungan Sedia Ada dan Tulis Laluan Baru**
-
-**Fail:** `routes/web.php`
-
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// ========== LALUAN AWAM ==========
-
-// Laman Utama
-Route::get('/', function () {
-    return 'Selamat datang ke Blog Saya!';
-})->name('home');
-
-// Halaman Tentang
-Route::get('/about', function () {
-    return 'Halaman Tentang Kami - Blog Sederhana dengan Laravel';
-})->name('about');
-
-// Senarai Semua Jawatan
-Route::get('/posts', function () {
-    return 'Senarai Semua Jawatan di Blog';
-})->name('posts.index');
-
-// Paparan Jawatan Tunggal dengan Parameter
-Route::get('/posts/{id}', function ($id) {
-    return "Paparan Jawatan dengan ID: $id";
-})->name('posts.show')->where('id', '[0-9]+');
-
-// Borang Hubungan (Paparan)
-Route::get('/contact', function () {
-    return 'Borang Hubungan - Sila hantar mesej';
-})->name('contact.show');
-
-// Borang Hubungan (Hantar)
-Route::post('/contact', function () {
-    return 'Terima kasih! Mesej anda telah diterima.';
-})->name('contact.store');
-
-// Carian Jawatan
-Route::get('/search', function () {
-    $query = request('q'); // Ambil parameter query string
-    if ($query) {
-        return "Hasil carian untuk: '$query'";
-    }
-    return 'Sila masukkan kata kunci carian';
-})->name('search');
-
-// ========== LALUAN ADMIN (Kumpulan dengan Awalan) ==========
-
-Route::prefix('admin')->group(function () {
-
-    Route::get('/', function () {
-        return 'Papan Pemuka Admin';
-    })->name('admin.dashboard');
-
-    Route::get('/posts', function () {
-        return 'Senarai Jawatan untuk Pengurusan Admin';
-    })->name('admin.posts.index');
-
-    Route::get('/posts/create', function () {
-        return 'Borang Cipta Jawatan Baru';
-    })->name('admin.posts.create');
-
-    Route::post('/posts', function () {
-        return 'Jawatan baru telah dibuat!';
-    })->name('admin.posts.store');
-
-    Route::get('/posts/{id}/edit', function ($id) {
-        return "Borang Edit Jawatan $id";
-    })->name('admin.posts.edit')->where('id', '[0-9]+');
-
-    Route::put('/posts/{id}', function ($id) {
-        return "Jawatan $id telah dikemas kini";
-    })->name('admin.posts.update')->where('id', '[0-9]+');
-
-    Route::delete('/posts/{id}', function ($id) {
-        return "Jawatan $id telah dihapus";
-    })->name('admin.posts.destroy')->where('id', '[0-9]+');
-
-});
-
-// ========== LALUAN FALLBACK ==========
-// Laluan untuk URL yang tidak wujud (mesti di akhir)
-Route::fallback(function () {
-    return response('Halaman Tidak Dijumpai', 404);
-});
-```
-
-**Langkah 3: Uji Semua Laluan**
-
-Buka terminal dan jalankan:
-
-```bash
-php artisan serve
-
-# Output dijangka:
-# Laravel development server started: http://127.0.0.1:8000
-```
-
-Keadaan server berjalan, uji dalam pelayar:
-
-```
-http://127.0.0.1:8000/              → Selamat datang ke Blog Saya!
-http://127.0.0.1:8000/about         → Halaman Tentang Kami...
-http://127.0.0.1:8000/posts         → Senarai Semua Jawatan...
-http://127.0.0.1:8000/posts/5       → Paparan Jawatan dengan ID: 5
-http://127.0.0.1:8000/contact       → Borang Hubungan...
-http://127.0.0.1:8000/search?q=laravel → Hasil carian untuk: 'laravel'
-http://127.0.0.1:8000/admin         → Papan Pemuka Admin
-http://127.0.0.1:8000/admin/posts   → Senarai Jawatan untuk Pengurusan...
-http://127.0.0.1:8000/tidak-wujud   → Halaman Tidak Dijumpai (404)
-```
-
-**Langkah 4: Lihat Senarai Semua Laluan**
-
-```bash
-php artisan route:list
-
-# Output dijangka (contoh):
-# +----------+------------------------+---------+-------+
-# | Method   | URI                    | Name    | Auth  |
-# +----------+------------------------+---------+-------+
-# | GET|HEAD | /                      | home    |       |
-# | GET|HEAD | /about                 | about   |       |
-# | GET|HEAD | /posts                 | posts.index |   |
-# | GET|HEAD | /posts/{id}            | posts.show  |   |
-# | GET|HEAD | /contact               | contact.show |  |
-# | POST     | /contact               | contact.store|  |
-# | GET|HEAD | /search                | search  |       |
-# | GET|HEAD | /admin                 | admin.dashboard |
-# | GET|HEAD | /admin/posts           | admin.posts.index |
-# ...
-# +----------+------------------------+---------+-------+
-```
-
-### Penyelesaian Masalah Lab 2.1
-
-**Masalah 1: "Halaman Tidak Dijumpai" untuk semua URL**
-- **Punca:** Pelayan tidak berjalan
-- **Penyelesaian:** Pastikan `php artisan serve` berjalan dalam terminal
-
-**Masalah 2: Parameter tidak berfungsi (seperti `/posts/abc`)**
-- **Punca:** Kekangan regex `where('id', '[0-9]+')` menolak nilai bukan-angka
-- **Penyelesaian:** Ubah `[0-9]+` kepada `.+` untuk menerima sebarang nilai, atau pastikan anda menghantar ID yang sah
-
-**Masalah 3: Kaedah POST/PUT/DELETE tidak berfungsi dalam pelayar**
-- **Punca:** Pelayar hanya menyokong GET dan POST
-- **Penyelesaian:** Gunakan alat seperti Postman untuk menguji PUT/DELETE
 
 ---
 
 ## Modul 2.2: Pengawal (Controllers)
 
-### Pengenalan Pengawal
+### Apa itu Pengawal?
 
-Pengawal adalah kelas PHP yang mengorganisir logik perniagaan aplikasi anda. Daripada menulis semua kod dalam laluan, anda pisahkan logik ke dalam pengawal yang boleh digunakan semula.
+Pengawal adalah kelas yang mengandungi logik untuk mengendalikan permintaan dan mengembalikan tindak balas. Daripada menulis fungsi langsung dalam penghalaan, kami menggunakan pengawal untuk mengorganisir kod dengan lebih baik.
 
-**Keuntungan Menggunakan Pengawal:**
-- Kod lebih bersih dan mudah dibaca
-- Logik dapat digunakan semula
-- Lebih mudah untuk menguji
-- Mengikuti prinsip MVC (Model-View-Controller)
+### Struktur Pengawal Sumber (Resource Controller)
 
-### Struktur Folder Pengawal
+Dalam sistem REST, pengawal sumber biasanya mempunyai 7 kaedah:
 
-```
-blog/
-├── app/
-│   └── Http/
-│       └── Controllers/
-│           ├── Controller.php        ← Pengawal asas
-│           ├── PostController.php    ← Pengawal kami akan buat di sini
-│           └── ...
-└── ...
-```
+| Kaedah | Laluan | Penerangan |
+|--------|--------|-----------|
+| **index** | GET `/pembayar` | Paparan senarai semua pembayar |
+| **create** | GET `/pembayar/create` | Paparan borang untuk buat pembayar baru |
+| **store** | POST `/pembayar` | Simpan pembayar baru ke pangkalan data |
+| **show** | GET `/pembayar/{id}` | Paparan satu pembayar |
+| **edit** | GET `/pembayar/{id}/edit` | Paparan borang untuk ubah pembayar |
+| **update** | PUT `/pembayar/{id}` | Simpan perubahan pembayar ke pangkalan data |
+| **destroy** | DELETE `/pembayar/{id}` | Hapus pembayar dari pangkalan data |
 
-### Jenis-Jenis Pengawal
+### Membuat Pengawal Dengan Artisan
 
-#### 1. Pengawal Asas (Basic Controller)
-
-**Membuat Pengawal dengan Artisan:**
+Laravel menyediakan perintah Artisan untuk membuat pengawal secara automatik:
 
 ```bash
-cd C:\laragon\www\blog
-php artisan make:controller PostController
-
-# Output dijangka:
-# Controller created successfully.
+php artisan make:controller PembayarController --resource
 ```
 
-Fail yang dibuat:
+Perintah ini membuat fail:
+```
+app/Http/Controllers/PembayarController.php
+```
 
-**Fail:** `app/Http/Controllers/PostController.php`
+Dengan 7 kaedah sudah persediaan.
+
+### Kod Lengkap PembayarController
+
+Berikut adalah kod lengkap untuk `PembayarController` dengan penjelasan setiap kaedah:
 
 ```php
 <?php
@@ -568,767 +187,298 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
-class PostController extends Controller
-{
-    // Kaedah akan ditambah di sini
-}
-```
-
-#### 2. Pengawal Sumber (Resource Controller)
-
-Pengawal sumber secara automatik membuat kaedah CRUD (Create, Read, Update, Delete):
-
-```bash
-php artisan make:controller PostController --resource
-
-# Output dijangka:
-# Controller created successfully.
-```
-
-Ini akan membuat pengawal dengan kaedah:
-- `index()` - Paparan senarai
-- `create()` - Paparan borang cipta
-- `store()` - Simpan data baru
-- `show()` - Paparan item tunggal
-- `edit()` - Paparan borang edit
-- `update()` - Kemas kini data
-- `destroy()` - Hapus data
-
-#### 3. Pengawal Satu Tindakan (Single Action Controller)
-
-Untuk kaedah tunggal:
-
-```bash
-php artisan make:controller WelcomeController --invokable
-
-# Output dijangka:
-# Controller created successfully.
-```
-
-**Fail:** `app/Http/Controllers/WelcomeController.php`
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class WelcomeController extends Controller
-{
-    public function __invoke(Request $request)
-    {
-        return 'Selamat datang!';
-    }
-}
-```
-
-### Membuat Pengawal POST yang Lengkap
-
-**Buat pengawal sumber untuk Posts:**
-
-```bash
-php artisan make:controller PostController --resource
-
-# Tunggu output:
-# Controller created successfully.
-```
-
-**Fail:** `app/Http/Controllers/PostController.php`
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class PostController extends Controller
+class PembayarController extends Controller
 {
     /**
-     * Paparan senarai semua jawatan
+     * Paparkan senarai semua pembayar zakat
+     * GET /pembayar
      */
     public function index()
     {
-        // Data sampel
-        $posts = [
-            ['id' => 1, 'title' => 'Pengenalan Laravel', 'author' => 'Ali'],
-            ['id' => 2, 'title' => 'Asas Penghalaan', 'author' => 'Siti'],
-            ['id' => 3, 'title' => 'Bekerja dengan Database', 'author' => 'Ahmad'],
-        ];
-
-        return view('posts.index', compact('posts'));
-        // Atau untuk ujian: return json_encode($posts);
+        // Di sini kita akan mengambil semua pembayar dari pangkalan data
+        // Untuk sekarang, kembalikan teks
+        return view('pembayar.index');
     }
 
     /**
-     * Paparan borang untuk cipta jawatan baru
+     * Paparkan borang untuk buat pembayar baru
+     * GET /pembayar/create
      */
     public function create()
     {
-        return view('posts.create');
+        // Kembalikan paparan borang penciptaan
+        return view('pembayar.create');
     }
 
     /**
-     * Simpan jawatan baru ke dalam database
+     * Simpan pembayar baru ke pangkalan data
+     * POST /pembayar
+     *
+     * @param Request $request Permintaan dari borang
      */
     public function store(Request $request)
     {
-        // Validasi data (akan pelajari pada hari berikutnya)
+        // Sah-kan data
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'author' => 'required|string|max:100',
+            'nama' => 'required|string|max:100',
+            'no_ic' => 'required|unique:pembayars|regex:/^\d{12}$/',
+            'alamat' => 'required|string',
+            'no_tel' => 'required|regex:/^\d{10,11}$/',
+            'email' => 'required|email|unique:pembayars',
+            'pekerjaan' => 'required|string',
+            'pendapatan_bulanan' => 'required|numeric|min:0',
         ]);
 
-        // Simpan ke database (akan implementasi dengan Model pada hari berikutnya)
-        // Post::create($validated);
+        // Simpan ke pangkalan data
+        // Pembayar::create($validated);
 
-        return redirect()->route('posts.index')
-                       ->with('success', 'Jawatan baru telah dibuat!');
+        return redirect()->route('pembayar.index')
+                       ->with('success', 'Pembayar baru telah ditambah.');
     }
 
     /**
-     * Paparan jawatan tunggal
+     * Paparkan satu pembayar mengikut ID
+     * GET /pembayar/{id}
+     *
+     * @param int $id ID pembayar
      */
     public function show($id)
     {
-        // Data sampel
-        $post = [
-            'id' => $id,
-            'title' => 'Jawatan Contoh',
-            'content' => 'Ini adalah kandungan jawatan sampel.',
-            'author' => 'Ali'
-        ];
+        // Di sini kita akan mengambil pembayar dari pangkalan data
+        // $pembayar = Pembayar::find($id);
 
-        return view('posts.show', compact('post'));
-        // Atau: return json_encode($post);
+        // Kembalikan paparan untuk pembayar satu
+        return view('pembayar.show', ['id' => $id]);
     }
 
     /**
-     * Paparan borang untuk edit jawatan
+     * Paparkan borang untuk ubah pembayar sedia ada
+     * GET /pembayar/{id}/edit
+     *
+     * @param int $id ID pembayar
      */
     public function edit($id)
     {
-        // Data sampel
-        $post = [
-            'id' => $id,
-            'title' => 'Jawatan untuk Diedit',
-            'content' => 'Kandungan yang akan diedit',
-            'author' => 'Ali'
-        ];
+        // Ambil pembayar dari pangkalan data
+        // $pembayar = Pembayar::find($id);
 
-        return view('posts.edit', compact('post'));
+        // Kembalikan paparan borang pengeditan
+        return view('pembayar.edit', ['id' => $id]);
     }
 
     /**
-     * Kemas kini jawatan dalam database
+     * Kemaskini pembayar dalam pangkalan data
+     * PUT /pembayar/{id}
+     *
+     * @param Request $request Permintaan dengan data baru
+     * @param int $id ID pembayar
      */
     public function update(Request $request, $id)
     {
-        // Validasi data
+        // Sah-kan data
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'author' => 'required|string|max:100',
+            'nama' => 'required|string|max:100',
+            'no_ic' => 'required|unique:pembayars,no_ic,' . $id . '|regex:/^\d{12}$/',
+            'alamat' => 'required|string',
+            'no_tel' => 'required|regex:/^\d{10,11}$/',
+            'email' => 'required|email|unique:pembayars,email,' . $id,
+            'pekerjaan' => 'required|string',
+            'pendapatan_bulanan' => 'required|numeric|min:0',
         ]);
 
-        // Kemas kini database
-        // Post::find($id)->update($validated);
+        // Kemaskini rekod dalam pangkalan data
+        // $pembayar = Pembayar::find($id);
+        // $pembayar->update($validated);
 
-        return redirect()->route('posts.show', $id)
-                       ->with('success', 'Jawatan telah dikemas kini!');
+        return redirect()->route('pembayar.show', $id)
+                       ->with('success', 'Pembayar telah dikemas kini.');
     }
 
     /**
-     * Hapus jawatan
+     * Hapus pembayar dari pangkalan data
+     * DELETE /pembayar/{id}
+     *
+     * @param int $id ID pembayar
      */
     public function destroy($id)
     {
-        // Hapus dari database
-        // Post::find($id)->delete();
+        // Cari dan hapus pembayar
+        // $pembayar = Pembayar::find($id);
+        // $pembayar->delete();
 
-        return redirect()->route('posts.index')
-                       ->with('success', 'Jawatan telah dihapus!');
+        return redirect()->route('pembayar.index')
+                       ->with('success', 'Pembayar telah dihapus.');
     }
 }
 ```
 
-### Menghubungkan Pengawal dengan Laluan
+### Penjelasan Setiap Kaedah
 
-**Fail:** `routes/web.php`
-
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PostController;
-
-// ========== Menggunakan Pengawal ==========
-
-// Cara 1: Laluan individu
-Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
-Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
-Route::get('/posts/create', [PostController::class, 'create'])->name('posts.create');
-Route::get('/posts/{id}', [PostController::class, 'show'])->name('posts.show');
-Route::get('/posts/{id}/edit', [PostController::class, 'edit'])->name('posts.edit');
-Route::put('/posts/{id}', [PostController::class, 'update'])->name('posts.update');
-Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');
-
-// Cara 2: Laluan sumber (lebih ringkas)
-Route::resource('posts', PostController::class);
-
-// ========== Laluan Lain ==========
-
-Route::get('/', function () {
-    return 'Selamat datang ke Blog!';
-})->name('home');
-```
-
-**Perhatian:** Hanya gunakan SALAH SATU daripada Cara 1 atau Cara 2. Cara 2 lebih ringkas dan disyorkan.
-
-**Uji Laluan Sumber:**
-
-```bash
-php artisan route:list
-
-# Output dijangka:
-# +----------+-------------------+----------+--------------------+
-# | Method   | URI               | Name     | Controller         |
-# +----------+-------------------+----------+--------------------+
-# | GET|HEAD | /posts            | posts.index | PostController@index |
-# | POST     | /posts            | posts.store | PostController@store |
-# | GET|HEAD | /posts/create     | posts.create| PostController@create|
-# | GET|HEAD | /posts/{id}       | posts.show  | PostController@show  |
-# | GET|HEAD | /posts/{id}/edit  | posts.edit  | PostController@edit  |
-# | PUT|PATCH| /posts/{id}       | posts.update| PostController@update|
-# | DELETE   | /posts/{id}       | posts.destroy|PostController@destroy|
-# +----------+-------------------+----------+--------------------+
-```
-
----
-
-## Lab 2.2: Cipta Pengawal CRUD Lengkap untuk Posts
-
-### Objektif
-
-Anda akan membuat pengawal `PostController` yang lengkap dengan kesemua kaedah CRUD dan menghubungkannya dengan laluan.
-
-### Langkah-Langkah
-
-**Langkah 1: Buat Pengawal dengan Artisan**
-
-```bash
-cd C:\laragon\www\blog
-
-# Buat pengawal sumber
-php artisan make:controller PostController --resource
-
-# Output dijangka:
-# Controller created successfully.
-```
-
-**Langkah 2: Kembali Edit Pengawal dengan Kod CRUD Lengkap**
-
-Buka fail:
-```
-C:\laragon\www\blog\app\Http\Controllers\PostController.php
-```
-
-Gantikan dengan kod:
-
-**Fail:** `app/Http/Controllers/PostController.php`
+#### 1. `index()` - Senarai Pembayar
 
 ```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class PostController extends Controller
+public function index()
 {
-    // Simpan data dalam array (untuk ujian, belum database)
-    private static $posts = [
-        ['id' => 1, 'title' => 'Pengenalan Laravel', 'content' => 'Laravel adalah framework PHP yang kuat...', 'author' => 'Ali'],
-        ['id' => 2, 'title' => 'Memahami Routing', 'content' => 'Routing adalah cara untuk mengarahkan permintaan...', 'author' => 'Siti'],
-    ];
-
-    /**
-     * index() - Paparan senarai semua jawatan
-     * GET /posts
-     */
-    public function index()
-    {
-        $posts = self::$posts;
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Senarai semua jawatan',
-            'data' => $posts,
-            'count' => count($posts)
-        ]);
-    }
-
-    /**
-     * create() - Paparan borang cipta jawatan
-     * GET /posts/create
-     */
-    public function create()
-    {
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Borang untuk membuat jawatan baru',
-            'form_fields' => ['title', 'content', 'author']
-        ]);
-    }
-
-    /**
-     * store() - Simpan jawatan baru
-     * POST /posts
-     */
-    public function store(Request $request)
-    {
-        // Validasi input
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'author' => 'required|string|max:100',
-        ]);
-
-        // Buat ID baru
-        $newId = count(self::$posts) + 1;
-
-        // Tambah ke senarai
-        $newPost = array_merge(['id' => $newId], $validated);
-        self::$posts[] = $newPost;
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Jawatan baru telah disimpan!',
-            'data' => $newPost
-        ], 201);
-    }
-
-    /**
-     * show() - Paparan jawatan tunggal
-     * GET /posts/{id}
-     */
-    public function show($id)
-    {
-        // Cari jawatan dengan ID
-        $post = collect(self::$posts)->firstWhere('id', $id);
-
-        if (!$post) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Jawatan dengan ID $id tidak dijumpai"
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Paparan jawatan',
-            'data' => $post
-        ]);
-    }
-
-    /**
-     * edit() - Paparan borang edit jawatan
-     * GET /posts/{id}/edit
-     */
-    public function edit($id)
-    {
-        // Cari jawatan
-        $post = collect(self::$posts)->firstWhere('id', $id);
-
-        if (!$post) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Jawatan dengan ID $id tidak dijumpai"
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Borang edit jawatan',
-            'data' => $post,
-            'form_fields' => ['title', 'content', 'author']
-        ]);
-    }
-
-    /**
-     * update() - Kemas kini jawatan
-     * PUT /posts/{id}
-     */
-    public function update(Request $request, $id)
-    {
-        // Cari jawatan
-        $post = collect(self::$posts)->firstWhere('id', $id);
-
-        if (!$post) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Jawatan dengan ID $id tidak dijumpai"
-            ], 404);
-        }
-
-        // Validasi input
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'author' => 'required|string|max:100',
-        ]);
-
-        // Cari indeks dan kemas kini
-        $key = array_search($id, array_column(self::$posts, 'id'));
-        self::$posts[$key] = array_merge(['id' => $id], $validated);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Jawatan telah dikemas kini!',
-            'data' => self::$posts[$key]
-        ]);
-    }
-
-    /**
-     * destroy() - Hapus jawatan
-     * DELETE /posts/{id}
-     */
-    public function destroy($id)
-    {
-        // Cari jawatan
-        $post = collect(self::$posts)->firstWhere('id', $id);
-
-        if (!$post) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Jawatan dengan ID $id tidak dijumpai"
-            ], 404);
-        }
-
-        // Hapus
-        self::$posts = array_values(
-            array_filter(self::$posts, fn($p) => $p['id'] != $id)
-        );
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Jawatan telah dihapus!'
-        ]);
-    }
+    return view('pembayar.index');
 }
 ```
 
-**Langkah 3: Kemaskini Fail Laluan**
+- Mengambil semua pembayar dari pangkalan data
+- Mengembalikan paparan dengan senarai pembayar
+- Dipanggil oleh: `GET /pembayar`
 
-**Fail:** `routes/web.php`
+#### 2. `create()` - Paparan Borang Buat
 
 ```php
-<?php
+public function create()
+{
+    return view('pembayar.create');
+}
+```
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PostController;
+- Mengembalikan paparan borang kosong untuk input data baru
+- Dipanggil oleh: `GET /pembayar/create`
 
-// Laman utama
-Route::get('/', function () {
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Selamat datang ke API Blog!'
+#### 3. `store()` - Simpan Pembayar Baru
+
+```php
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'nama' => 'required|string|max:100',
+        'no_ic' => 'required|unique:pembayars|regex:/^\d{12}$/',
+        // ... peraturan pengesahan lain
     ]);
-})->name('home');
 
-// Laluan sumber untuk Posts (menjana 7 laluan secara automatik)
-Route::resource('posts', PostController::class);
-
-// Laluan fallback
-Route::fallback(function () {
-    return response()->json([
-        'status' => 'error',
-        'message' => 'Halaman tidak dijumpai'
-    ], 404);
-});
-```
-
-**Langkah 4: Uji Semua Kaedah CRUD**
-
-Buka terminal dan jalankan pelayan:
-
-```bash
-php artisan serve
-
-# Output dijangka:
-# Laravel development server started: http://127.0.0.1:8000
-```
-
-Buka Postman atau alat pengujian API lain, dan uji:
-
-**1. GET /posts (Senarai Semua)**
-
-```
-Request: GET http://127.0.0.1:8000/posts
-
-Response (Output Dijangka):
-{
-  "status": "success",
-  "message": "Senarai semua jawatan",
-  "data": [
-    {
-      "id": 1,
-      "title": "Pengenalan Laravel",
-      "content": "Laravel adalah framework PHP yang kuat...",
-      "author": "Ali"
-    },
-    {
-      "id": 2,
-      "title": "Memahami Routing",
-      "content": "Routing adalah cara untuk mengarahkan permintaan...",
-      "author": "Siti"
-    }
-  ],
-  "count": 2
+    // Simpan ke pangkalan data
+    return redirect()->route('pembayar.index')
+                   ->with('success', 'Pembayar baru telah ditambah.');
 }
 ```
 
-**2. GET /posts/{id} (Paparan Tunggal)**
+- Menerima data dari borang (POST)
+- Mengesahkan data
+- Menyimpan ke pangkalan data
+- Mengalihkan ke halaman senarai dengan mesej kejayaan
+- Dipanggil oleh: `POST /pembayar`
 
-```
-Request: GET http://127.0.0.1:8000/posts/1
+#### 4. `show()` - Paparkan Satu Pembayar
 
-Response (Output Dijangka):
+```php
+public function show($id)
 {
-  "status": "success",
-  "message": "Paparan jawatan",
-  "data": {
-    "id": 1,
-    "title": "Pengenalan Laravel",
-    "content": "Laravel adalah framework PHP yang kuat...",
-    "author": "Ali"
-  }
+    return view('pembayar.show', ['id' => $id]);
 }
 ```
 
-**3. GET /posts/create (Borang Cipta)**
+- Mengambil satu pembayar berdasarkan ID
+- Mengembalikan paparan dengan butiran pembayar
+- Dipanggil oleh: `GET /pembayar/{id}`
 
-```
-Request: GET http://127.0.0.1:8000/posts/create
+#### 5. `edit()` - Paparan Borang Ubah
 
-Response (Output Dijangka):
+```php
+public function edit($id)
 {
-  "status": "success",
-  "message": "Borang untuk membuat jawatan baru",
-  "form_fields": ["title", "content", "author"]
+    return view('pembayar.edit', ['id' => $id]);
 }
 ```
 
-**4. POST /posts (Simpan Baru)**
+- Mengambil pembayar berdasarkan ID
+- Mengembalikan paparan borang yang sudah dipenuhi dengan data sedia ada
+- Dipanggil oleh: `GET /pembayar/{id}/edit`
 
-```
-Request: POST http://127.0.0.1:8000/posts
+#### 6. `update()` - Kemaskini Pembayar
 
-Body (JSON):
+```php
+public function update(Request $request, $id)
 {
-  "title": "Jawatan Baru",
-  "content": "Ini adalah jawatan yang baru dibuat",
-  "author": "Ahmad"
-}
+    $validated = $request->validate([
+        'nama' => 'required|string|max:100',
+        // ... peraturan pengesahan lain
+    ]);
 
-Response (Output Dijangka):
-{
-  "status": "success",
-  "message": "Jawatan baru telah disimpan!",
-  "data": {
-    "id": 3,
-    "title": "Jawatan Baru",
-    "content": "Ini adalah jawatan yang baru dibuat",
-    "author": "Ahmad"
-  }
-}
-Status Code: 201 Created
-```
-
-**5. GET /posts/{id}/edit (Borang Edit)**
-
-```
-Request: GET http://127.0.0.1:8000/posts/1/edit
-
-Response (Output Dijangka):
-{
-  "status": "success",
-  "message": "Borang edit jawatan",
-  "data": {
-    "id": 1,
-    "title": "Pengenalan Laravel",
-    "content": "Laravel adalah framework PHP yang kuat...",
-    "author": "Ali"
-  },
-  "form_fields": ["title", "content", "author"]
+    // Kemaskini dalam pangkalan data
+    return redirect()->route('pembayar.show', $id)
+                   ->with('success', 'Pembayar telah dikemas kini.');
 }
 ```
 
-**6. PUT /posts/{id} (Kemas Kini)**
+- Menerima data dari borang (PUT)
+- Mengesahkan data
+- Kemaskini pangkalan data
+- Mengalihkan ke paparan pembayar yang dikemas kini
+- Dipanggil oleh: `PUT /pembayar/{id}`
 
-```
-Request: PUT http://127.0.0.1:8000/posts/1
+#### 7. `destroy()` - Hapus Pembayar
 
-Body (JSON):
+```php
+public function destroy($id)
 {
-  "title": "Pengenalan Laravel - Dikemas Kini",
-  "content": "Kandungan yang telah dikemas kini",
-  "author": "Ali Updated"
-}
-
-Response (Output Dijangka):
-{
-  "status": "success",
-  "message": "Jawatan telah dikemas kini!",
-  "data": {
-    "id": 1,
-    "title": "Pengenalan Laravel - Dikemas Kini",
-    "content": "Kandungan yang telah dikemas kini",
-    "author": "Ali Updated"
-  }
+    // Hapus dari pangkalan data
+    return redirect()->route('pembayar.index')
+                   ->with('success', 'Pembayar telah dihapus.');
 }
 ```
 
-**7. DELETE /posts/{id} (Hapus)**
-
-```
-Request: DELETE http://127.0.0.1:8000/posts/1
-
-Response (Output Dijangka):
-{
-  "status": "success",
-  "message": "Jawatan telah dihapus!"
-}
-Status Code: 200 OK
-```
-
-**Periksa Semua Laluan:**
-
-```bash
-php artisan route:list
-
-# Output dijangka:
-# +---------+-----------------------+----------+--------------------+
-# | Method  | URI                   | Name     | Controller         |
-# +---------+-----------------------+----------+--------------------+
-# | GET|HEAD| /                     | home     | Closure            |
-# | GET|HEAD| /posts                | posts.index | PostController@index |
-# | POST    | /posts                | posts.store | PostController@store |
-# | GET|HEAD| /posts/create         | posts.create | PostController@create|
-# | GET|HEAD| /posts/{id}           | posts.show | PostController@show  |
-# | GET|HEAD| /posts/{id}/edit      | posts.edit | PostController@edit  |
-# | PUT|PATCH| /posts/{id}          | posts.update | PostController@update|
-# | DELETE  | /posts/{id}           | posts.destroy | PostController@destroy|
-# +---------+-----------------------+----------+--------------------+
-```
-
-### Penyelesaian Masalah Lab 2.2
-
-**Masalah 1: "Call to undefined method..."**
-- **Punca:** Pengawal tidak diedit dengan betul
-- **Penyelesaian:** Pastikan kod dalam `PostController.php` disalin sepenuhnya dan tanpa syntax error
-
-**Masalah 2: "Target class [App\Http\Controllers\PostController] does not exist"**
-- **Punca:** Laluan tidak menemui pengawal
-- **Penyelesaian:** Pastikan namespace dan nama kelas betul. Jalankan `php artisan route:list` untuk memeriksa
-
-**Masalah 3: Validasi gagal dengan pesan "validation.required"**
-- **Punca:** Data yang dihantar tidak lengkap
-- **Penyelesaian:** Pastikan semua medan yang diperlukan (`title`, `content`, `author`) dihantar dalam permintaan
-
-**Masalah 4: DELETE tidak berfungsi dalam pelayar**
-- **Punca:** Pelayar tidak menyokong kaedah DELETE
-- **Penyelesaian:** Gunakan Postman atau alat serupa untuk menguji DELETE
+- Menghapus pembayar berdasarkan ID
+- Mengalihkan kembali ke senarai dengan mesej kejayaan
+- Dipanggil oleh: `DELETE /pembayar/{id}`
 
 ---
 
 ## Modul 2.3: Middleware
 
-### Pengenalan Middleware
+### Apa itu Middleware?
 
-Middleware adalah lapisan perantara antara permintaan (request) dan respons (response). Middleware dapat memeriksa, memodifikasi, atau menolak permintaan sebelum sampai ke pengawal.
+Middleware adalah lapisan yang melintasi permintaan sebelum sampai ke pengawal anda. Ia digunakan untuk:
 
-**Analogi:** Seperti petugas keselamatan di pintu yang memeriksa pelawat sebelum membenarkan mereka masuk.
+- Pengesahan (authentication)
+- Pembenaranan (authorization)
+- Pencatatan (logging)
+- Pengesahan token CSRF
+- Kompresi respons
 
-**Kegunaan Middleware:**
-- Pengesahan pengguna (authentication)
-- Kebenaran pengguna (authorization)
-- Pengehadan kadar permintaan (rate limiting)
-- Keamanan CORS
-- Pencatatan permintaan
-- Mampatan respons
+### Middleware Asas dalam Laravel
 
-### Struktur Folder Middleware
+Laravel sudah mempunyai beberapa middleware bawaan:
 
-```
-blog/
-├── app/
-│   └── Http/
-│       ├── Middleware/
-│       │   ├── Authenticate.php      ← Middleware asas
-│       │   ├── LogRequests.php       ← Middleware tersuai kami akan buat
-│       │   └── ...
-│       └── ...
-└── ...
-```
+| Middleware | Tujuan |
+|-----------|--------|
+| `auth` | Periksa sama ada pengguna sudah log masuk |
+| `auth:sanctum` | Pengesahan API |
+| `verified` | Periksa sama ada email sudah disahkan |
+| `cors` | Hantar semula permintaan lintas asal |
+| `throttle` | Hadkan bilangan permintaan |
 
-### Middleware Terbina dalam Laravel
-
-**1. Middleware Pengesahan (auth)**
+### Menggunakan Middleware dalam Penghalaan
 
 ```php
-Route::get('/profile', function () {
-    return 'Profil pengguna';
-})->middleware('auth');
+// Menggunakan middleware tunggal
+Route::get('/pembayar', [PembayarController::class, 'index'])->middleware('auth');
+
+// Menggunakan berbilang middleware
+Route::put('/pembayar/{id}', [PembayarController::class, 'update'])
+    ->middleware('auth', 'verified');
+
+// Menggunakan dalam kumpulan penghalaan
+Route::middleware(['auth'])->group(function () {
+    Route::get('/pembayar', [PembayarController::class, 'index']);
+    Route::post('/pembayar', [PembayarController::class, 'store']);
+    Route::put('/pembayar/{id}', [PembayarController::class, 'update']);
+    Route::delete('/pembayar/{id}', [PembayarController::class, 'destroy']);
+});
 ```
 
-Memastikan hanya pengguna yang telah log masuk boleh akses.
+### Membuat Middleware Kustom
 
-**2. Middleware Tetamu (guest)**
-
-```php
-Route::get('/login', function () {
-    return 'Halaman log masuk';
-})->middleware('guest');
-```
-
-Memastikan hanya pengguna yang belum log masuk boleh akses.
-
-**3. Middleware Pengehadan Kadar (throttle)**
-
-```php
-Route::post('/api/posts', function () {
-    return 'Buat jawatan';
-})->middleware('throttle:10,1');
-```
-
-Membenarkan maksimal 10 permintaan per 1 minit.
-
-**4. Middleware Diperiksa Email (verified)**
-
-```php
-Route::get('/dashboard', function () {
-    return 'Papan pemuka';
-})->middleware('verified');
-```
-
-Memastikan email pengguna telah disahkan.
-
-### Membuat Middleware Tersuai
-
-**Buat middleware tersuai:**
+Untuk membuat middleware kustom, gunakan Artisan:
 
 ```bash
-cd C:\laragon\www\blog
-
-php artisan make:middleware LogRequests
-
-# Output dijangka:
-# Middleware created successfully.
+php artisan make:middleware CatatanAkses
 ```
 
-**Fail:** `app/Http/Middleware/LogRequests.php`
+Ini menghasilkan fail di `app/Http/Middleware/CatatanAkses.php`:
 
 ```php
 <?php
@@ -1337,882 +487,525 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
-class LogRequests
+class CatatanAkses
 {
     /**
-     * Proses permintaan
+     * Tangani permintaan masuk.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        // Sebelum permintaan sampai ke pengawal
-        $method = $request->getMethod();
-        $path = $request->getPathInfo();
-        $ip = $request->ip();
-        $timestamp = date('Y-m-d H:i:s');
+        // Tindakan SEBELUM permintaan sampai ke pengawal
+        \Log::info('Pengguna mengakses: ' . $request->path());
 
-        // Catat maklumat permintaan
-        \Log::info("[$timestamp] $method $path dari IP: $ip");
-
-        // Lanjutkan ke pengawal
         $response = $next($request);
 
-        // Selepas pengawal memberikan respons
-        $statusCode = $response->status();
-        \Log::info("Response Status: $statusCode");
+        // Tindakan SELEPAS permintaan diproses
+        \Log::info('Respons telah dikirim');
 
         return $response;
     }
 }
 ```
 
-### Menggunakan Middleware dalam Laluan
+### Mendaftarkan Middleware Kustom
 
-**Fail:** `routes/web.php`
+Daftarkan di `app/Http/Kernel.php`:
 
 ```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PostController;
-use App\Http\Middleware\LogRequests;
-
-// Laluan dengan middleware
-Route::get('/', function () {
-    return 'Laman Utama';
-})->middleware(LogRequests::class);
-
-// Laluan sumber dengan middleware
-Route::resource('posts', PostController::class)
-    ->middleware(LogRequests::class);
-
-// Middleware pada kumpulan laluan
-Route::prefix('admin')
-    ->middleware(LogRequests::class)
-    ->group(function () {
-        Route::get('/', function () {
-            return 'Admin Dashboard';
-        });
-    });
+protected $routeMiddleware = [
+    // ... middleware lain
+    'catatan' => \App\Http\Middleware\CatatanAkses::class,
+];
 ```
 
-### Mendaftar Middleware Secara Global
-
-Untuk memohon middleware pada semua laluan:
-
-**Fail:** `app/Http/Kernel.php`
+Kemudian gunakan:
 
 ```php
-<?php
-
-namespace App\Http;
-
-use Illuminate\Foundation\Http\Kernel as HttpKernel;
-
-class Kernel extends HttpKernel
-{
-    /**
-     * Middleware untuk semua laluan HTTP
-     */
-    protected $middleware = [
-        \App\Http\Middleware\LogRequests::class,
-    ];
-
-    /**
-     * Kumpulan middleware yang boleh dipanggil dengan nama
-     */
-    protected $middlewareGroups = [
-        'web' => [
-            // Middleware untuk laluan web
-        ],
-        'api' => [
-            // Middleware untuk laluan API
-        ],
-    ];
-}
+Route::get('/pembayar', [PembayarController::class, 'index'])->middleware('catatan');
 ```
 
 ---
 
-## Lab 2.3: Buat Middleware Pencatatan Tersuai
+## Modul 2.4: Permintaan & Tindak Balas (Request & Response)
 
-### Objektif
+### Objek Permintaan (Request)
 
-Anda akan membuat middleware yang mencatat setiap permintaan ke aplikasi dalam fail log.
-
-### Langkah-Langkah
-
-**Langkah 1: Buat Middleware**
-
-```bash
-cd C:\laragon\www\blog
-
-php artisan make:middleware RequestLogger
-
-# Output dijangka:
-# Middleware created successfully.
-```
-
-**Langkah 2: Edit Middleware**
-
-**Fail:** `app/Http/Middleware/RequestLogger.php`
-
-```php
-<?php
-
-namespace App\Http\Middleware;
-
-use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-
-class RequestLogger
-{
-    /**
-     * Proses dan catatkan setiap permintaan
-     */
-    public function handle(Request $request, Closure $next): Response
-    {
-        // Maklumat permintaan
-        $method = $request->getMethod();
-        $path = $request->getPathInfo();
-        $ip = $request->ip();
-        $userAgent = $request->header('User-Agent');
-        $timestamp = date('Y-m-d H:i:s');
-
-        // Format log
-        $logMessage = "[$timestamp] $method $path | IP: $ip | User-Agent: $userAgent";
-
-        // Tulis ke fail log
-        \Log::channel('single')->info($logMessage);
-
-        // Lanjutkan permintaan
-        $response = $next($request);
-
-        // Catat status respons
-        $status = $response->status();
-        \Log::channel('single')->info("Response Status: $status untuk $method $path");
-
-        return $response;
-    }
-}
-```
-
-**Langkah 3: Daftar Middleware dalam Routing**
-
-**Fail:** `routes/web.php`
-
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PostController;
-use App\Http\Middleware\RequestLogger;
-
-// Laman utama
-Route::get('/', function () {
-    return response()->json(['message' => 'Selamat datang']);
-})->name('home')->middleware(RequestLogger::class);
-
-// Laluan sumber dengan middleware pencatatan
-Route::resource('posts', PostController::class)
-    ->middleware(RequestLogger::class);
-
-// Laluan lain untuk ujian
-Route::get('/test', function () {
-    return response()->json(['message' => 'Halaman ujian']);
-})->middleware(RequestLogger::class);
-```
-
-**Langkah 4: Uji Middleware**
-
-Buka terminal dan jalankan:
-
-```bash
-php artisan serve
-```
-
-Dalam pelayar atau Postman, buat beberapa permintaan:
-
-```
-GET http://127.0.0.1:8000/
-GET http://127.0.0.1:8000/posts
-POST http://127.0.0.1:8000/posts
-GET http://127.0.0.1:8000/test
-```
-
-**Langkah 5: Lihat Fail Log**
-
-Fail log disimpan di:
-
-```
-C:\laragon\www\blog\storage\logs\laravel.log
-```
-
-Buka dengan editor teks atau terminal:
-
-```bash
-# Lihat isi fail log (pada Windows PowerShell)
-Get-Content C:\laragon\www\blog\storage\logs\laravel.log -Tail 20
-
-# Output dijangka:
-# [2026-04-06 10:15:30] local.INFO: [2026-04-06 10:15:30] GET / | IP: 127.0.0.1 | User-Agent: Mozilla/5.0...
-# [2026-04-06 10:15:31] local.INFO: Response Status: 200 untuk GET /
-# [2026-04-06 10:15:32] local.INFO: [2026-04-06 10:15:32] GET /posts | IP: 127.0.0.1 | User-Agent: Mozilla/5.0...
-# [2026-04-06 10:15:32] local.INFO: Response Status: 200 untuk GET /posts
-```
-
-### Penyelesaian Masalah Lab 2.3
-
-**Masalah 1: Fail log tidak dikemas kini**
-- **Punca:** Middleware tidak didaftar atau sambungan fail log gagal
-- **Penyelesaian:** Pastikan `RequestLogger::class` ditambah di laluan. Periksa kebenaran fail `storage/logs/`
-
-**Masalah 2: "Undefined method...Log::channel()"**
-- **Punca:** Kod menggunakan `Log` yang salah
-- **Penyelesaian:** Guna `\Log::info()` atau `\Illuminate\Support\Facades\Log::info()`
-
-**Masalah 3: Middleware berjalan untuk semua laluan**
-- **Punca:** Middleware didaftar secara global
-- **Penyelesaian:** Pastikan hanya laluan yang diperlukan memiliki `->middleware(RequestLogger::class)`
-
----
-
-## Modul 2.4: Permintaan (Request) & Respons (Response)
-
-### Pengenalan Request & Response
-
-**Request (Permintaan):** Data yang dihantar oleh klien (pelayar) ke pelayan Laravel
-**Response (Respons):** Data yang dikembalikan oleh pelayan Laravel ke klien
-
-### Jenis-Jenis Request
-
-```
-GET     - Meminta data dari pelayan
-POST    - Menghantar data baru ke pelayan
-PUT     - Menghantar data untuk menggantikan keseluruhan sumber
-PATCH   - Menghantar data untuk menggantikan sebahagian sumber
-DELETE  - Meminta penghapusan sumber
-HEAD    - Seperti GET tetapi tanpa badan respons
-OPTIONS - Meminta maklumat tentang kaedah yang dibenarkan
-```
-
-### Objek Request
-
-Dalam setiap pengawal atau laluan, anda boleh akses objek `Request`:
+Objek `Request` mengandungi semua maklumat tentang permintaan dari pelanggan:
 
 ```php
 public function store(Request $request)
 {
-    // Ambil semua input
-    $all = $request->all();
+    // Ambil satu medan dari borang
+    $nama = $request->input('nama');
 
-    // Ambil input tertentu
-    $name = $request->input('name');
-    $email = $request->get('email');
+    // Ambil semua data dari borang
+    $semua = $request->all();
 
-    // Ambil dari query string
-    $page = $request->query('page');
+    // Ambil data tertentu saja
+    $data = $request->only('nama', 'email');
 
-    // Ambil dari URL (parameter)
-    $id = $request->route('id');
+    // Ambil semua kecuali medan tertentu
+    $data = $request->except('_token');
 
-    // Periksa input tertentu
-    if ($request->has('name')) {
-        // Ada input 'name'
+    // Periksa sama ada medan wujud
+    if ($request->has('nama')) {
+        // Medan 'nama' ada
     }
 
-    // Ambil nilai dengan default
-    $role = $request->input('role', 'user');
+    // Dapatkan nilai default jika medan tiada
+    $pekerjaan = $request->input('pekerjaan', 'Tidak dinyatakan');
 }
 ```
 
-### Ambil Input dari Request
+### Pengesahan Data (Validation)
 
-**Fail:** `app/Http/Controllers/PostController.php`
+Pengesahan memastikan data yang diterima adalah sah dan sesuai:
 
 ```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class PostController extends Controller
+public function store(Request $request)
 {
-    /**
-     * Simpan jawatan baru
-     */
-    public function store(Request $request)
-    {
-        // Cara 1: Ambil semua input
-        $data = $request->all();
+    // Pengesahan ringkas
+    $validated = $request->validate([
+        'nama' => 'required|string|max:100',
+        'no_ic' => 'required|unique:pembayars|regex:/^\d{12}$/',
+        'email' => 'required|email|unique:pembayars',
+        'pendapatan_bulanan' => 'required|numeric|min:0',
+    ]);
 
-        // Cara 2: Ambil input tertentu
-        $title = $request->input('title');
-        $content = $request->input('content');
-        $author = $request->get('author'); // Alias untuk input()
-
-        // Cara 3: Ambil dengan nilai default
-        $status = $request->input('status', 'published');
-
-        // Cara 4: Ambil dari query string (?page=2)
-        $page = $request->query('page', 1);
-
-        // Cara 5: Periksa input tertentu
-        if ($request->has('featured')) {
-            // Ada 'featured' dalam input
-        }
-
-        if ($request->filled('title')) {
-            // Ada 'title' dan nilainya tidak kosong
-        }
-
-        // Cara 6: Validasi input
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string|min:10',
-            'author' => 'required|string|max:100',
-            'status' => 'in:draft,published,archived',
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Jawatan telah disimpan',
-            'data' => $validated
-        ], 201);
-    }
-
-    /**
-     * Kemas kini jawatan
-     */
-    public function update(Request $request, $id)
-    {
-        // Validasi hanya medan yang dihantar
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'content' => 'sometimes|required|string',
-            'author' => 'sometimes|required|string|max:100',
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Jawatan $id telah dikemas kini',
-            'data' => $validated
-        ]);
-    }
+    // Jika pengesahan gagal, Laravel akan otomatik mengembalikan ke halaman sebelumnya
+    // dengan mesej ralat dan data borang yang dihantar
 }
 ```
 
-### Jenis-Jenis Response
+### Peraturan Pengesahan Biasa
 
-#### 1. Response JSON
+| Peraturan | Penerangan | Contoh |
+|----------|-----------|--------|
+| `required` | Medan mesti ada dan tidak kosong | `'nama' => 'required'` |
+| `string` | Nilai mesti teks | `'nama' => 'string'` |
+| `email` | Nilai mesti format email sah | `'email' => 'email'` |
+| `max:100` | Panjang maksimum 100 watak | `'nama' => 'max:100'` |
+| `min:0` | Nilai minimum 0 | `'pendapatan' => 'min:0'` |
+| `unique:table` | Nilai unik dalam jadual | `'no_ic' => 'unique:pembayars'` |
+| `regex:/^\d{12}$/` | Padanan dengan corak regex | `'no_ic' => 'regex:/^\d{12}$/'` |
 
-```php
-// Cara 1: Ringkas
-return response()->json(['message' => 'Berjaya']);
+### Tindak Balas (Response)
 
-// Cara 2: Dengan status code
-return response()->json(['message' => 'Dibuat'], 201);
+Laravel memberikan beberapa cara untuk menghantar tindak balas:
 
-// Cara 3: Dengan header tambahan
-return response()->json(['data' => $data])
-    ->header('X-Custom-Header', 'value');
-```
-
-#### 2. Response HTML/String
-
-```php
-// Kembalikan string
-return 'Selamat datang ke Blog!';
-
-// Kembalikan HTML
-return '<h1>Selamat Datang</h1>';
-
-// Kembalikan dengan status code
-return response('<h1>Halaman Tidak Dijumpai</h1>', 404);
-```
-
-#### 3. Response View (Template)
+#### 1. Mengembalikan Paparan
 
 ```php
-// Kembalikan view dengan data
-return view('posts.show', ['post' => $post]);
-
-// Dengan compact (lebih ringkas)
-return view('posts.show', compact('post'));
+return view('pembayar.index');
 ```
 
-#### 4. Response Redirect
+#### 2. Mengembalikan JSON
 
 ```php
-// Redirect ke URL
-return redirect('/posts');
-
-// Redirect ke nama laluan
-return redirect()->route('posts.index');
-
-// Dengan parameter
-return redirect()->route('posts.show', ['id' => 1]);
-
-// Dengan mesej flash
-return redirect()->route('posts.index')
-    ->with('success', 'Jawatan telah dibuat!');
-
-// Redirect ke halaman sebelumnya
-return redirect()->back();
+return response()->json([
+    'status' => 'kejayaan',
+    'mesej' => 'Pembayar baru telah ditambah',
+    'data' => $pembayar
+]);
 ```
 
-#### 5. Response File Download
+#### 3. Mengalihkan ke Laluan Lain
 
 ```php
-// Download fail
-return response()->download('/path/to/file.pdf');
-
-// Dengan nama ubahan
-return response()->download('/path/to/file.pdf', 'dokumen.pdf');
+return redirect()->route('pembayar.index');
 ```
 
-#### 6. Response File Tinjauan (View)
+#### 4. Mengalihkan dengan Mesej
 
 ```php
-// Tunjuk fail dalam pelayar
-return response()->file('/path/to/file.pdf');
+return redirect()->route('pembayar.show', $id)
+                ->with('success', 'Pembayar telah dikemas kini.');
 ```
 
-### Perlindungan CSRF
+#### 5. Mengembalikan Teks Biasa
 
-Laravel melindungi aplikasi daripada serangan CSRF (Cross-Site Request Forgery). Semua borang POST/PUT/DELETE mesti mengandungi token CSRF.
-
-**Dalam Borang HTML:**
-
-```html
-<form method="POST" action="/posts">
-    @csrf
-    <input type="text" name="title" required>
-    <button type="submit">Hantar</button>
-</form>
-```
-
-**Atau Secara Manual:**
-
-```html
-<input type="hidden" name="_token" value="{{ csrf_token() }}">
+```php
+return 'Senarai pembayar';
 ```
 
 ---
 
-## Lab 2.4: Tangani Request & Response
+## Lab 2.1: Cipta Penghalaan untuk Sistem Zakat
 
-### Objektif
+### Langkah 1: Buka Fail Penghalaan
 
-Anda akan membuat borang kontak dan memproses input dengan pengesahan yang betul, serta memberikan respons yang sesuai.
-
-### Langkah-Langkah
-
-**Langkah 1: Buat Pengawal Kontak**
+Buka fail `routes/web.php`:
 
 ```bash
-cd C:\laragon\www\blog
-
-php artisan make:controller ContactController
-
-# Output dijangka:
-# Controller created successfully.
+# Dengan text editor anda
+# Cari fail di: projek-laravel/routes/web.php
 ```
 
-**Langkah 2: Tulis Kod Pengawal**
+### Langkah 2: Bersihkan Penghalaan Lama
 
-**Fail:** `app/Http/Controllers/ContactController.php`
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class ContactController extends Controller
-{
-    /**
-     * Paparan borang kontak
-     * GET /contact
-     */
-    public function show()
-    {
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Borang hubungan siap untuk diisi',
-            'form' => [
-                'fields' => ['name', 'email', 'subject', 'message']
-            ]
-        ]);
-    }
-
-    /**
-     * Proses borang kontak
-     * POST /contact
-     */
-    public function store(Request $request)
-    {
-        // Ambil input dari permintaan
-        $name = $request->input('name');
-        $email = $request->input('email');
-        $subject = $request->input('subject');
-        $message = $request->input('message');
-
-        // Periksa jika semua medan telah dihantar
-        if (!$name || !$email || !$subject || !$message) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Sila isi semua medan',
-                'required_fields' => ['name', 'email', 'subject', 'message']
-            ], 400);
-        }
-
-        // Validasi input
-        $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email',
-            'subject' => 'required|string|max:200',
-            'message' => 'required|string|min:10|max:5000',
-        ]);
-
-        // Simulasi penyimpanan ke database atau penghantar email
-        $contactData = [
-            'id' => uniqid(),
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'subject' => $validated['subject'],
-            'message' => $validated['message'],
-            'created_at' => now()->format('Y-m-d H:i:s'),
-        ];
-
-        // Catat dalam fail log
-        \Log::info('Borang kontak diterima:', $contactData);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Terima kasih! Mesej anda telah diterima. Kami akan menghubungi anda tidak lama lagi.',
-            'data' => $contactData,
-            'reference_id' => $contactData['id']
-        ], 201);
-    }
-
-    /**
-     * Senarai semua mesej kontak (Admin)
-     * GET /contact/messages
-     */
-    public function index()
-    {
-        // Simulasi data dari database
-        $messages = [
-            [
-                'id' => 1,
-                'name' => 'Ali Ahmad',
-                'email' => 'ali@example.com',
-                'subject' => 'Pertanyaan tentang pricing',
-                'message' => 'Berapa harga untuk paket premium?',
-                'created_at' => '2026-04-05 10:30:00'
-            ],
-            [
-                'id' => 2,
-                'name' => 'Siti Nurul',
-                'email' => 'siti@example.com',
-                'subject' => 'Teknikal Support',
-                'message' => 'Saya tidak dapat log masuk ke akaun saya.',
-                'created_at' => '2026-04-05 14:15:00'
-            ]
-        ];
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Senarai mesej kontak',
-            'data' => $messages,
-            'total' => count($messages)
-        ]);
-    }
-}
-```
-
-**Langkah 3: Daftar Laluan**
-
-**Fail:** `routes/web.php`
+Buang semua penghalaan lama (selain yang diperlukan untuk dashboard):
 
 ```php
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PostController;
-use App\Http\Controllers\ContactController;
-use App\Http\Middleware\RequestLogger;
+use App\Http\Controllers\PembayarController;
 
-// Laman utama
 Route::get('/', function () {
-    return response()->json(['message' => 'Selamat datang ke Blog']);
-})->name('home');
-
-// Laluan Posts (Sumber)
-Route::resource('posts', PostController::class)
-    ->middleware(RequestLogger::class);
-
-// Laluan Kontak
-Route::get('/contact', [ContactController::class, 'show'])->name('contact.show');
-Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
-Route::get('/contact/messages', [ContactController::class, 'index'])->name('contact.messages');
+    return view('welcome');
+});
 ```
 
-**Langkah 4: Uji Request & Response**
+### Langkah 3: Tambah Penghalaan Sumber untuk Pembayar
 
-Jalankan pelayan:
+Tambahkan penghalaan sumber ini untuk pengawal `PembayarController`:
+
+```php
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PembayarController;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// Penghalaan CRUD untuk Pembayar Zakat
+Route::resource('pembayar', PembayarController::class);
+```
+
+**Penjelasan:**
+
+`Route::resource('pembayar', PembayarController::class)` akan secara otomatik mencipta 7 penghalaan:
+
+| Kaedah HTTP | Laluan | Nama Penghalaan | Kaedah Pengawal |
+|-------------|--------|-----------------|-----------------|
+| GET | `/pembayar` | `pembayar.index` | `index()` |
+| GET | `/pembayar/create` | `pembayar.create` | `create()` |
+| POST | `/pembayar` | `pembayar.store` | `store()` |
+| GET | `/pembayar/{pembayar}` | `pembayar.show` | `show()` |
+| GET | `/pembayar/{pembayar}/edit` | `pembayar.edit` | `edit()` |
+| PUT/PATCH | `/pembayar/{pembayar}` | `pembayar.update` | `update()` |
+| DELETE | `/pembayar/{pembayar}` | `pembayar.destroy` | `destroy()` |
+
+### Langkah 4: Simpan Fail
+
+Simpan fail `routes/web.php`.
+
+---
+
+## Lab 2.2: Cipta PembayarController
+
+### Langkah 1: Buat Pengawal Dengan Artisan
+
+Buka terminal dan jalankan:
 
 ```bash
-php artisan serve
+php artisan make:controller PembayarController --resource
 ```
 
-**Ujian 1: GET /contact**
+Keluaran yang dijangka:
 
 ```
-Request: GET http://127.0.0.1:8000/contact
+Controller created successfully.
+```
 
-Output Dijangka:
+Ini akan mencipta fail:
+```
+app/Http/Controllers/PembayarController.php
+```
+
+### Langkah 2: Buka Fail Pengawal
+
+Buka fail `app/Http/Controllers/PembayarController.php` dengan text editor anda.
+
+### Langkah 3: Lengkapkan Kaedah index()
+
+Gantikan kaedah `index()` dengan kod ini:
+
+```php
+public function index()
 {
-  "status": "success",
-  "message": "Boform hubungan siap untuk diisi",
-  "form": {
-    "fields": ["name", "email", "subject", "message"]
-  }
+    // Pada hari ini, kita hanya akan mengembalikan paparan
+    // Pada hari 3, kita akan mengambil data dari pangkalan data
+
+    return view('pembayar.index');
 }
 ```
 
-**Ujian 2: POST /contact dengan data lengkap**
+### Langkah 4: Lengkapkan Kaedah create()
 
-```
-Request: POST http://127.0.0.1:8000/contact
-
-Body (JSON):
+```php
+public function create()
 {
-  "name": "Ali Ahmad",
-  "email": "ali@example.com",
-  "subject": "Pertanyaan Produk",
-  "message": "Saya berminat untuk mengetahui lebih lanjut tentang produk anda yang baru"
-}
-
-Output Dijangka:
-{
-  "status": "success",
-  "message": "Terima kasih! Mesej anda telah diterima. Kami akan menghubungi anda tidak lama lagi.",
-  "data": {
-    "id": "65a1b2c3d4e5f",
-    "name": "Ali Ahmad",
-    "email": "ali@example.com",
-    "subject": "Pertanyaan Produk",
-    "message": "Saya berminat untuk mengetahui lebih lanjut tentang produk anda yang baru",
-    "created_at": "2026-04-06 10:45:30"
-  },
-  "reference_id": "65a1b2c3d4e5f"
-}
-Status Code: 201 Created
-```
-
-**Ujian 3: POST /contact tanpa data (Validasi Gagal)**
-
-```
-Request: POST http://127.0.0.1:8000/contact
-
-Body (JSON):
-{
-  "name": "Ali"
-}
-
-Output Dijangka:
-{
-  "message": "The given data was invalid.",
-  "errors": {
-    "email": ["The email field is required."],
-    "subject": ["The subject field is required."],
-    "message": ["The message field is required."]
-  }
-}
-Status Code: 422 Unprocessable Entity
-```
-
-**Ujian 4: POST /contact dengan email tidak sah**
-
-```
-Request: POST http://127.0.0.1:8000/contact
-
-Body (JSON):
-{
-  "name": "Ali Ahmad",
-  "email": "bukan-email",
-  "subject": "Test",
-  "message": "Mesej ujian untuk pengesahan email"
-}
-
-Output Dijangka:
-{
-  "message": "The given data was invalid.",
-  "errors": {
-    "email": ["The email must be a valid email address."]
-  }
-}
-Status Code: 422 Unprocessable Entity
-```
-
-**Ujian 5: GET /contact/messages**
-
-```
-Request: GET http://127.0.0.1:8000/contact/messages
-
-Output Dijangka:
-{
-  "status": "success",
-  "message": "Senarai mesej kontak",
-  "data": [
-    {
-      "id": 1,
-      "name": "Ali Ahmad",
-      "email": "ali@example.com",
-      "subject": "Pertanyaan tentang pricing",
-      "message": "Berapa harga untuk paket premium?",
-      "created_at": "2026-04-05 10:30:00"
-    },
-    {
-      "id": 2,
-      "name": "Siti Nurul",
-      "email": "siti@example.com",
-      "subject": "Teknikal Support",
-      "message": "Saya tidak dapat log masuk ke akaun saya.",
-      "created_at": "2026-04-05 14:15:00"
-    }
-  ],
-  "total": 2
+    return view('pembayar.create');
 }
 ```
 
-### Penyelesaian Masalah Lab 2.4
+### Langkah 5: Lengkapkan Kaedah store()
 
-**Masalah 1: "The given data was invalid" tetapi data nampak betul**
-- **Punca:** Format JSON tidak betul atau medan tidak sepadan
-- **Penyelesaian:** Pastikan `Content-Type: application/json` dalam header Postman, dan medan sepadan dengan nama dalam `validate()`
+```php
+public function store(Request $request)
+{
+    // Sah-kan data dari borang
+    $validated = $request->validate([
+        'nama' => 'required|string|max:100',
+        'no_ic' => 'required|unique:pembayars|regex:/^\d{12}$/',
+        'alamat' => 'required|string',
+        'no_tel' => 'required|regex:/^\d{10,11}$/',
+        'email' => 'required|email|unique:pembayars',
+        'pekerjaan' => 'required|string',
+        'pendapatan_bulanan' => 'required|numeric|min:0',
+    ]);
 
-**Masalah 2: "Email validation failed"**
-- **Punca:** Email tidak dalam format yang betul
-- **Penyelesaian:** Gunakan email yang sah seperti `ali@example.com`
+    // Untuk sekarang, hanya alihkan kembali dengan mesej
+    // Pada hari 3, kita akan simpan ke pangkalan data
 
-**Masalah 3: Response 500 Internal Server Error**
-- **Punca:** Kesalahan dalam kod
-- **Penyelesaian:** Periksa fail `storage/logs/laravel.log` untuk melihat ralat sebenar
+    return redirect()->route('pembayar.index')
+                    ->with('success', 'Pembayar baru telah ditambah.');
+}
+```
+
+### Langkah 6: Lengkapkan Kaedah show()
+
+```php
+public function show($id)
+{
+    // Pada hari 3, kita akan mengambil pembayar berdasarkan ID
+
+    return view('pembayar.show', ['id' => $id]);
+}
+```
+
+### Langkah 7: Lengkapkan Kaedah edit()
+
+```php
+public function edit($id)
+{
+    // Pada hari 3, kita akan mengambil pembayar berdasarkan ID
+
+    return view('pembayar.edit', ['id' => $id]);
+}
+```
+
+### Langkah 8: Lengkapkan Kaedah update()
+
+```php
+public function update(Request $request, $id)
+{
+    // Sah-kan data dari borang
+    $validated = $request->validate([
+        'nama' => 'required|string|max:100',
+        'no_ic' => 'required|unique:pembayars,no_ic,' . $id . '|regex:/^\d{12}$/',
+        'alamat' => 'required|string',
+        'no_tel' => 'required|regex:/^\d{10,11}$/',
+        'email' => 'required|email|unique:pembayars,email,' . $id,
+        'pekerjaan' => 'required|string',
+        'pendapatan_bulanan' => 'required|numeric|min:0',
+    ]);
+
+    // Untuk sekarang, hanya alihkan dengan mesej
+    // Pada hari 3, kita akan kemaskini pangkalan data
+
+    return redirect()->route('pembayar.show', $id)
+                    ->with('success', 'Pembayar telah dikemas kini.');
+}
+```
+
+### Langkah 9: Lengkapkan Kaedah destroy()
+
+```php
+public function destroy($id)
+{
+    // Untuk sekarang, hanya alihkan dengan mesej
+    // Pada hari 3, kita akan padam dari pangkalan data
+
+    return redirect()->route('pembayar.index')
+                    ->with('success', 'Pembayar telah dihapus.');
+}
+```
+
+### Langkah 10: Simpan Fail Pengawal
+
+Simpan fail `app/Http/Controllers/PembayarController.php`.
+
+---
+
+## Lab 2.3: Uji Penghalaan dan Pengawal
+
+### Langkah 1: Lihat Senarai Penghalaan
+
+Buka terminal dan jalankan:
+
+```bash
+php artisan route:list
+```
+
+Keluaran yang dijangka (disaring untuk pembayar):
+
+```
+GET|HEAD  /pembayar                   pembayar.index         PembayarController@index
+GET|HEAD  /pembayar/create            pembayar.create        PembayarController@create
+POST      /pembayar                   pembayar.store         PembayarController@store
+GET|HEAD  /pembayar/{pembayar}        pembayar.show          PembayarController@show
+GET|HEAD  /pembayar/{pembayar}/edit   pembayar.edit          PembayarController@edit
+PUT|PATCH /pembayar/{pembayar}        pembayar.update        PembayarController@update
+DELETE    /pembayar/{pembayar}        pembayar.destroy       PembayarController@destroy
+```
+
+**Perkara Penting:**
+- Semua 7 penghalaan sudah terdaftar
+- Setiap penghalaan mempunyai nama unik (cth: `pembayar.index`)
+- Kaedah HTTP ditunjukkan di sebelah kiri
+
+### Langkah 2: Uji Penghalaan Dalam Penyemak Imbas
+
+Pastikan Laragon sedang berjalan, kemudian buka penyemak imbas anda.
+
+#### Uji 1: Senarai Pembayar
+
+```
+URL: http://localhost/sistem-zakat/public/pembayar
+Kaedah: GET
+```
+
+**Jangkaan:**
+- Halaman akan meminta paparan `pembayar.index`
+- Anda akan melihat ralat karena paparan belum dibuat (normal untuk hari ini)
+
+#### Uji 2: Borang Buat Pembayar
+
+```
+URL: http://localhost/sistem-zakat/public/pembayar/create
+Kaedah: GET
+```
+
+**Jangkaan:**
+- Halaman akan meminta paparan `pembayar.create`
+- Ralat paparan akan muncul (normal)
+
+#### Uji 3: Paparkan Satu Pembayar
+
+```
+URL: http://localhost/sistem-zakat/public/pembayar/1
+Kaedah: GET
+```
+
+**Jangkaan:**
+- Parameter `{id}` akan ditangkap sebagai `1`
+- Halaman akan meminta paparan `pembayar.show`
+- Ralat paparan akan muncul (normal)
+
+### Langkah 3: Periksa Penghalaan dengan Perintah Artisan
+
+Untuk melihat penghalaan tertentu:
+
+```bash
+php artisan route:list --name=pembayar
+```
+
+Untuk melihat penghalaan dengan URI tertentu:
+
+```bash
+php artisan route:list --path=pembayar
+```
 
 ---
 
 ## Ringkasan Hari 2
 
-### Jadual Ringkasan
+### Apa yang Anda Belajar
 
-| Topik | Pembelajaran Utama | Praktik |
-|-------|-------------------|---------|
-| **Routing** | Laluan GET/POST/PUT/DELETE, parameter, laluan bernama, kumpulan | Lab 2.1: 7 laluan blog |
-| **Controllers** | Membuat pengawal, kaedah CRUD, pengawal sumber | Lab 2.2: PostController CRUD lengkap |
-| **Middleware** | Apa itu middleware, membuat middleware tersuai, menggunakan middleware | Lab 2.3: RequestLogger middleware |
-| **Request & Response** | Ambil input, validasi, respons JSON/HTML/redirect | Lab 2.4: Borang kontak lengkap |
+✅ **Penghalaan (Routing):**
+- Cara mentakrifkan penghalaan dalam `routes/web.php`
+- Kaedah HTTP: GET, POST, PUT, DELETE
+- Parameter dinamik: `{id}`
+- Laluan bernama: `.name('pembayar.show')`
+- Penghalaan sumber: `Route::resource()`
 
-### Fail-Fail yang Dibuat/Diubah pada Hari 2
+✅ **Pengawal (Controllers):**
+- Membuat pengawal dengan Artisan
+- 7 kaedah sumber: index, create, store, show, edit, update, destroy
+- Struktur kaedah dan tujuannya
 
-```
-blog/
-├── app/Http/
-│   ├── Controllers/
-│   │   ├── PostController.php         ← Baru
-│   │   └── ContactController.php      ← Baru
-│   └── Middleware/
-│       ├── RequestLogger.php          ← Baru
-│       └── LogRequests.php            ← Baru
-├── routes/
-│   └── web.php                        ← Diubah
-└── storage/
-    └── logs/
-        └── laravel.log                ← Dicatat middleware
-```
+✅ **Middleware:**
+- Konsep middleware sebagai lapisan permintaan
+- Middleware bawaan: `auth`, `verified`, `throttle`
+- Menggunakan middleware dalam penghalaan
 
-### Perintah Artisan Penting yang Dipelajari
+✅ **Permintaan & Tindak Balas:**
+- Objek `Request` dan kaedahnya
+- Pengesahan data dengan `validate()`
+- Tindak balas: `view()`, `redirect()`, `json()`
 
-```bash
-php artisan serve                       # Jalankan pelayan development
-php artisan route:list                  # Senarai semua laluan
-php artisan make:controller NAME        # Buat pengawal
-php artisan make:middleware NAME        # Buat middleware
-php artisan tinker                      # Interaktif PHP shell
-```
+✅ **Lab Praktikal:**
+- Membuat penghalaan sumber untuk Pembayar
+- Membuat PembayarController dengan 7 kaedah
+- Menguji penghalaan dalam penyemak imbas
 
-### Konsep Utama yang Dipelajari
+### Fail yang Telah Diubah/Dibuat
 
-1. **Routing:** Cara memetakan URL kepada logik aplikasi
-2. **Controllers:** Cara mengorganisir logik dalam kelas yang boleh digunakan semula
-3. **Middleware:** Cara mengesahkan/memproses permintaan sebelum sampai ke pengawal
-4. **Request & Response:** Cara menangani input pengguna dan memberikan output yang betul
-5. **CRUD:** Create (POST), Read (GET), Update (PUT), Delete (DELETE)
+| Fail | Status | Deskripsi |
+|------|--------|-----------|
+| `routes/web.php` | ✏️ Diubah | Tambah `Route::resource('pembayar', PembayarController::class)` |
+| `app/Http/Controllers/PembayarController.php` | ✨ Dibuat | Pengawal lengkap dengan 7 kaedah |
 
----
+### Persediaan untuk Hari 3
 
-## Persediaan untuk Hari 3
+Pada Hari 3, kita akan:
 
-Pada Hari 3, kami akan mempelajari:
+📚 **Membuat Lapangan (Views) dengan Blade**
+- Membuat templat untuk senarai pembayar
+- Membuat borang buat dan ubah pembayar
+- Menggunakan Blade directive seperti `@if`, `@foreach`, `@auth`
 
-1. **Database & Models** - Cara menyimpan data dalam database
-2. **Migrasi** - Cara membuat dan mengurus struktur database
-3. **Eloquent ORM** - Cara berinteraksi dengan database menggunakan Model
-4. **Query Builder** - Cara menulis query database
+🗄️ **Bekerja dengan Model dan Pangkalan Data**
+- Membuat Model `Pembayar`
+- Membuat dan menjalankan Migration
+- Mengambil data dari pangkalan data dalam pengawal
+- Menyimpan dan memkemaskini data
 
-**Sebelum Hari 3:**
-- Pastikan Laravel dan semua komponennya berfungsi dengan baik
-- Baca dokumentasi singkat tentang database MySQL
-- Sediakan diri anda untuk belajar tentang database design
+🔗 **Integrasi Lengkap**
+- Penghalaan → Pengawal → Model → Pangkalan Data → Paparan
+
+Persediaan:
+- Pastikan anda memahami 7 kaedah sumber
+- Bersiaplah untuk mempelajari Blade templating
+- Baca dokumentasi Laravel tentang Migrations dan Models
 
 ---
 
-## Penyelesaian Masalah Umum
+## Soalan Pelajaran
 
-### Masalah: "laravel.log is not writable"
-```bash
-# Ubah kebenaran folder storage
-icacls C:\laragon\www\blog\storage /grant Users:F /T
-```
+Untuk memastikan anda memahami hari ini, jawab soalan berikut:
 
-### Masalah: Port 8000 Sudah Digunakan
-```bash
-# Gunakan port lain
-php artisan serve --port=8001
-```
+1. **Penghalaan:** Apakah perbezaan antara `GET /pembayar` dan `POST /pembayar`?
 
-### Masalah: "Class not found"
-```bash
-# Buat semula autoloader
-composer dump-autoload
-```
+2. **Pengawal:** Kaedah pengawal manakah yang tidak menerima parameter `{id}`?
 
-### Masalah: Middleware tidak dijalankan
-```bash
-# Pastikan middleware didaftar dalam routes atau Kernel.php
-# Periksa nama kelas middleware dalam import statement
-```
+3. **Middleware:** Berikan satu contoh middleware bawaan Laravel dan tujuannya.
+
+4. **Pengesahan:** Bagaimana anda akan mengesahkan bahawa medan `no_ic` mempunyai tepat 12 digit?
+
+5. **Penghalaan Sumber:** Berapa banyak penghalaan yang dibuat oleh `Route::resource('pembayar', PembayarController::class)`?
 
 ---
 
-## Bacaan Lanjutan & Sumber
+## Rujukan Berguna
 
-- **Dokumentasi Routing:** https://laravel.com/docs/routing
-- **Dokumentasi Controllers:** https://laravel.com/docs/controllers
-- **Dokumentasi Middleware:** https://laravel.com/docs/middleware
-- **Dokumentasi Request:** https://laravel.com/docs/requests
-- **Dokumentasi Response:** https://laravel.com/docs/responses
+- [Laravel Routing Documentation](https://laravel.com/docs/routing)
+- [Laravel Controllers Documentation](https://laravel.com/docs/controllers)
+- [Laravel Middleware Documentation](https://laravel.com/docs/middleware)
+- [Laravel Validation Documentation](https://laravel.com/docs/validation)
+- [Laravel Responses Documentation](https://laravel.com/docs/responses)
 
 ---
 
-**Tamatkan Lab dan Sedia untuk Hari 3!**
+**Selamat belajar! Jangan ragu untuk bereksperimen dengan penghalaan dan pengawal anda.**
 
-Selamat belajar! Jika anda menghadapi masalah, sila semak penyelesaian masalah di atas atau rujuk dokumentasi Laravel rasmi.
+Untuk bantuan, lihat dokumentasi Laravel atau tanya ahli anda.

@@ -1,15 +1,24 @@
-# Kursus Laravel 4 Hari — Bahasa Melayu
+# Kursus Laravel 4 Hari — Sistem Pengurusan Zakat
 
-Kursus latihan amali Laravel untuk pemula, sepenuhnya dalam Bahasa Melayu. Kursus ini menggunakan **Laragon** sebagai persekitaran pembangunan pada **Windows** dan merangkumi semua asas yang diperlukan untuk membina aplikasi web dengan Laravel.
+Kursus latihan amali Laravel untuk pemula, sepenuhnya dalam Bahasa Melayu. Sepanjang 4 hari, peserta akan membina **Sistem Pengurusan Zakat** untuk **Pusat Zakat Negeri Kedah** — sebuah aplikasi web CRUD lengkap menggunakan Laravel.
+
+## Projek: Sistem Pengurusan Zakat Kedah
+
+Aplikasi ini menguruskan:
+
+- **Pembayar Zakat** — Daftar, kemaskini, cari, dan padam rekod pembayar
+- **Jenis Zakat** — Zakat Fitrah, Zakat Pendapatan, Zakat Perniagaan, Zakat Wang Simpanan, dll.
+- **Pembayaran** — Rekod bayaran, resit, status, laporan
+- **Pengguna/Admin** — Log masuk kakitangan Pusat Zakat untuk akses sistem
 
 ## Ringkasan Kursus
 
-| Hari | Topik | Fokus |
-|------|-------|-------|
-| [**Hari 1**](./hari-1-persediaan/) | Persediaan Persekitaran | Laragon, MySQL, VS Code, Composer, projek pertama |
-| [**Hari 2**](./hari-2-penghalaan-pengawal/) | Penghalaan & Pengawal | Routes, Controllers, Middleware, Request/Response |
-| [**Hari 3**](./hari-3-paparan-pangkalan-data/) | Paparan & Pangkalan Data | Blade templates, Eloquent ORM, Migrations, Validation |
-| [**Hari 4**](./hari-4-lanjutan-projek/) | Ciri Lanjutan & Projek | Authentication, API, Deployment, Projek Blog |
+| Hari | Topik | Fokus | Hasil |
+|------|-------|-------|-------|
+| [**Hari 1**](./hari-1-persediaan/) | Persediaan & Projek | Laragon, MySQL, VS Code, cipta projek `sistem-zakat` | Projek Laravel berjalan + DB `zakat_kedah` |
+| [**Hari 2**](./hari-2-penghalaan-pengawal/) | Penghalaan & Pengawal | Routes, Controllers, Middleware, CRUD Pembayar | Pengawal PembayarController siap dengan 7 kaedah |
+| [**Hari 3**](./hari-3-paparan-pangkalan-data/) | Paparan & Pangkalan Data | Blade, Eloquent, Migrations, Validation | Borang & senarai pembayar berfungsi penuh |
+| [**Hari 4**](./hari-4-lanjutan-projek/) | Auth, API & Siap Guna | Authentication, API, Hubungan Model, Deploy | Sistem lengkap dengan login + API |
 
 ## Keperluan Sistem
 
@@ -39,29 +48,33 @@ kursus-laravel-4hari/
 ├── hari-1-persediaan/
 │   ├── README.md                      # Nota lengkap Hari 1
 │   ├── lab/
-│   │   └── env-contoh.txt             # Contoh fail .env
+│   │   └── env-contoh.txt             # Contoh fail .env untuk sistem zakat
 │   └── rujukan/
 │       └── senarai-semak.md           # Senarai semak persediaan
 ├── hari-2-penghalaan-pengawal/
 │   ├── README.md                      # Nota lengkap Hari 2
 │   ├── lab/
-│   │   ├── web.php                    # Contoh fail routes
-│   │   └── PostController.php         # Contoh pengawal
+│   │   ├── web.php                    # Contoh fail routes (zakat)
+│   │   └── PembayarController.php     # Pengawal CRUD Pembayar
 │   └── rujukan/
 │       └── arahan-http.md             # Rujukan kaedah HTTP
 ├── hari-3-paparan-pangkalan-data/
 │   ├── README.md                      # Nota lengkap Hari 3
 │   ├── lab/
-│   │   ├── app.blade.php              # Contoh layout
-│   │   ├── create_posts_table.php     # Contoh migrasi
-│   │   └── Post.php                   # Contoh model
+│   │   ├── app.blade.php              # Layout utama sistem zakat
+│   │   ├── create_pembayars_table.php # Migrasi jadual pembayar
+│   │   ├── create_jenis_zakats_table.php # Migrasi jadual jenis zakat
+│   │   ├── create_pembayarans_table.php  # Migrasi jadual pembayaran
+│   │   ├── Pembayar.php               # Model Pembayar
+│   │   ├── JenisZakat.php             # Model JenisZakat
+│   │   └── Pembayaran.php            # Model Pembayaran
 │   └── rujukan/
 │       └── blade-cheatsheet.md        # Rujukan Blade
 ├── hari-4-lanjutan-projek/
 │   ├── README.md                      # Nota lengkap Hari 4
 │   ├── lab/
-│   │   ├── api.php                    # Contoh laluan API
-│   │   └── PostApiController.php      # Contoh pengawal API
+│   │   ├── api.php                    # Laluan API zakat
+│   │   └── PembayarApiController.php  # Pengawal API
 │   └── rujukan/
 │       └── artisan-cheatsheet.md      # Rujukan arahan Artisan
 └── slaid/
@@ -85,17 +98,37 @@ kursus-laravel-4hari/
 
 6. Rujuk folder `rujukan/` untuk cheatsheet dan senarai semak
 
-## Projek yang Dibina
+## Entiti Utama Projek
 
-Sepanjang 4 hari, anda akan membina sebuah **Aplikasi Blog** lengkap dengan ciri-ciri berikut:
+### 1. Pembayar Zakat (`pembayars`)
+| Medan | Jenis | Penerangan |
+|-------|-------|------------|
+| nama | string | Nama penuh pembayar |
+| no_ic | string | No. Kad Pengenalan (unik) |
+| alamat | text | Alamat penuh |
+| no_tel | string | No. telefon |
+| email | string | Alamat e-mel |
+| pekerjaan | string | Jenis pekerjaan |
+| pendapatan_bulanan | decimal | Pendapatan sebulan (RM) |
 
-- Pendaftaran dan log masuk pengguna (Laravel Breeze)
-- CRUD catatan blog (Create, Read, Update, Delete)
-- Paparan responsif dengan Blade templating
-- Pengesahan data borang (Validation)
-- Pangkalan data MySQL dengan Eloquent ORM
-- API RESTful untuk akses data
-- Hubungan Model (User hasMany Posts)
+### 2. Jenis Zakat (`jenis_zakats`)
+| Medan | Jenis | Penerangan |
+|-------|-------|------------|
+| nama | string | Nama jenis zakat |
+| kadar | decimal | Kadar/peratusan zakat |
+| penerangan | text | Penerangan ringkas |
+| is_aktif | boolean | Status aktif/tidak aktif |
+
+### 3. Pembayaran (`pembayarans`)
+| Medan | Jenis | Penerangan |
+|-------|-------|------------|
+| pembayar_id | foreign | FK ke jadual pembayar |
+| jenis_zakat_id | foreign | FK ke jadual jenis zakat |
+| jumlah | decimal | Jumlah bayaran (RM) |
+| tarikh_bayar | date | Tarikh pembayaran dibuat |
+| cara_bayar | enum | tunai / kad / fpx / online |
+| no_resit | string | Nombor resit (unik) |
+| status | enum | pending / sah / batal |
 
 ## Sambungan VS Code Disyorkan
 
@@ -113,6 +146,7 @@ Sepanjang 4 hari, anda akan membina sebuah **Aplikasi Blog** lengkap dengan ciri
 - [Laracasts](https://laracasts.com) — Video tutorial Laravel
 - [Laravel News](https://laravel-news.com) — Berita & tutorial
 - [Laravel Malaysia (Facebook)](https://www.facebook.com/groups/laravel.my/) — Komuniti tempatan
+- [Lembaga Zakat Negeri Kedah](https://www.zakatkedah.com.my/) — Rujukan domain
 
 ## Penyumbang
 

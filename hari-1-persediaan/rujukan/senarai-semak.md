@@ -31,13 +31,14 @@ Buka Terminal Laragon dan jalankan:
 ## Pangkalan Data
 
 - [ ] phpMyAdmin boleh dibuka di `http://localhost/phpmyadmin`
-- [ ] Pangkalan data `laravel_blog` telah dicipta
+- [ ] Pangkalan data `zakat_kedah` telah dicipta
 - [ ] Collation: `utf8mb4_unicode_ci`
 
 ## Projek Laravel
 
-- [ ] Projek `blog` dicipta dalam `C:\laragon\www\blog`
-- [ ] Fail `.env` dikonfigurasikan dengan betul
-- [ ] `http://blog.test` memaparkan halaman Laravel
+- [ ] Projek `sistem-zakat` dicipta dalam `C:\laragon\www\sistem-zakat`
+- [ ] Fail `.env` dikonfigurasikan (DB_DATABASE=zakat_kedah)
+- [ ] `http://sistem-zakat.test` memaparkan halaman Laravel
 - [ ] `php artisan migrate` berjaya tanpa ralat
 - [ ] VS Code boleh membuka folder projek
+- [ ] Route `/salam` berfungsi di pelayar

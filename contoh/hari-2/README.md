@@ -21,6 +21,7 @@ Hari ini kita akan membina **keseluruhan sistem CRUD Pembayar** beserta model hu
 | 6 | **Laluan** | Kumpulan laluan, prefix, middleware alias, laluan sumber |
 | 7 | **Paparan Blade** | Susun atur (layout), paparan CRUD lengkap, halaman semakan, halaman ralat |
 | 8 | **Pengawal Tambahan** | Pengawal untuk semakan sistem dan senarai laluan |
+| 9 | **Pengesahan (Auth)** | Log masuk, pendaftaran, log keluar, lindungi laluan dengan middleware `auth` |
 
 Pastikan projek Laravel `sistem-zakat` daripada Hari 1 sudah wujud dan berfungsi sebelum meneruskan.
 
@@ -2761,6 +2762,464 @@ php artisan serve
 
 ---
 
+## Bahagian E: Pengesahan Pengguna (Authentication)
+
+### Langkah 17: Cipta LoginController
+
+Cipta pengawal untuk mengendalikan log masuk dan log keluar:
+
+```bash
+php artisan make:controller Auth/LoginController
+```
+
+**Fail:** `app/Http/Controllers/Auth/LoginController.php`
+
+```php
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class LoginController extends Controller
+{
+    public function showLoginForm()
+    {
+        return view('auth.login');
+    }
+
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ], [
+            'email.required' => 'E-mel wajib diisi.',
+            'email.email' => 'Format e-mel tidak sah.',
+            'password.required' => 'Kata laluan wajib diisi.',
+        ]);
+
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('pembayar.index'));
+        }
+
+        return back()->withErrors([
+            'email' => 'E-mel atau kata laluan tidak sah.',
+        ])->onlyInput('email');
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('login');
+    }
+}
+```
+
+**Penjelasan:**
+- `showLoginForm()` — Papar borang log masuk
+- `login()` — Sahkan e-mel dan kata laluan menggunakan `Auth::attempt()`
+- `logout()` — Log keluar, buang sesi, dan jana semula token CSRF
+- `$request->intended()` — Redirect ke halaman asal yang cuba diakses
+- `$request->session()->regenerate()` — Cegah serangan session fixation
+
+---
+
+### Langkah 18: Cipta RegisterController
+
+```bash
+php artisan make:controller Auth/RegisterController
+```
+
+**Fail:** `app/Http/Controllers/Auth/RegisterController.php`
+
+```php
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+
+class RegisterController extends Controller
+{
+    public function showRegistrationForm()
+    {
+        return view('auth.register');
+    }
+
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'name.required' => 'Nama wajib diisi.',
+            'email.required' => 'E-mel wajib diisi.',
+            'email.unique' => 'E-mel ini sudah didaftarkan.',
+            'password.required' => 'Kata laluan wajib diisi.',
+            'password.min' => 'Kata laluan mestilah sekurang-kurangnya 8 aksara.',
+            'password.confirmed' => 'Pengesahan kata laluan tidak sepadan.',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        Auth::login($user);
+        return redirect()->route('pembayar.index');
+    }
+}
+```
+
+**Penjelasan:**
+- `showRegistrationForm()` — Papar borang pendaftaran
+- `register()` — Sahkan input, cipta pengguna baru, log masuk automatik
+- `Hash::make()` — Hash kata laluan sebelum simpan
+- `password.confirmed` — Pastikan kata laluan dan pengesahan sepadan
+
+---
+
+### Langkah 19: Cipta Paparan Log Masuk
+
+**Fail:** `resources/views/auth/login.blade.php`
+
+```blade
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Masuk — Sistem Zakat Kedah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white rounded-xl shadow-2xl p-8">
+        {{-- Logo / Tajuk --}}
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-emerald-700">Sistem Zakat Kedah</h1>
+            <p class="text-gray-500 mt-1">Log Masuk</p>
+        </div>
+
+        {{-- Borang Log Masuk --}}
+        <form method="POST" action="{{ route('login') }}">
+            @csrf
+
+            {{-- E-mel --}}
+            <div class="mb-4">
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mel</label>
+                <input type="email" name="email" id="email" value="{{ old('email') }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                       placeholder="admin@zakat.test" required autofocus>
+                @error('email')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Kata Laluan --}}
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Kata Laluan</label>
+                <input type="password" name="password" id="password"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                       placeholder="Masukkan kata laluan" required>
+                @error('password')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Ingat Saya --}}
+            <div class="flex items-center mb-6">
+                <input type="checkbox" name="remember" id="remember"
+                       class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                <label for="remember" class="ml-2 text-sm text-gray-600">Ingat Saya</label>
+            </div>
+
+            {{-- Butang Log Masuk --}}
+            <button type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition duration-200">
+                Log Masuk
+            </button>
+        </form>
+
+        {{-- Pautan Daftar --}}
+        <p class="text-center text-sm text-gray-500 mt-6">
+            Belum mempunyai akaun?
+            <a href="{{ route('register') }}" class="text-emerald-600 hover:text-emerald-700 font-medium">Daftar di sini</a>
+        </p>
+    </div>
+
+</body>
+</html>
+```
+
+**Penjelasan:**
+- Halaman standalone (tidak menggunakan layout utama)
+- Latar belakang kecerunan hijau (gradient)
+- Borang log masuk: e-mel, kata laluan, "Ingat Saya"
+- `@error('email')` — Papar ralat pengesahan
+- `old('email')` — Kekalkan input e-mel jika gagal
+
+---
+
+### Langkah 20: Cipta Paparan Pendaftaran
+
+**Fail:** `resources/views/auth/register.blade.php`
+
+```blade
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendaftaran — Sistem Zakat Kedah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white rounded-xl shadow-2xl p-8">
+        {{-- Logo / Tajuk --}}
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-emerald-700">Sistem Zakat Kedah</h1>
+            <p class="text-gray-500 mt-1">Pendaftaran Akaun Baru</p>
+        </div>
+
+        {{-- Borang Pendaftaran --}}
+        <form method="POST" action="{{ route('register') }}">
+            @csrf
+
+            {{-- Nama Penuh --}}
+            <div class="mb-4">
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama Penuh</label>
+                <input type="text" name="name" id="name" value="{{ old('name') }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                       placeholder="Masukkan nama penuh" required autofocus>
+                @error('name')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- E-mel --}}
+            <div class="mb-4">
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mel</label>
+                <input type="email" name="email" id="email" value="{{ old('email') }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                       placeholder="contoh@email.com" required>
+                @error('email')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Kata Laluan --}}
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Kata Laluan</label>
+                <input type="password" name="password" id="password"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                       placeholder="Minimum 8 aksara" required>
+                @error('password')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Sahkan Kata Laluan --}}
+            <div class="mb-6">
+                <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">Sahkan Kata Laluan</label>
+                <input type="password" name="password_confirmation" id="password_confirmation"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                       placeholder="Masukkan semula kata laluan" required>
+            </div>
+
+            {{-- Butang Daftar --}}
+            <button type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition duration-200">
+                Daftar
+            </button>
+        </form>
+
+        {{-- Pautan Log Masuk --}}
+        <p class="text-center text-sm text-gray-500 mt-6">
+            Sudah mempunyai akaun?
+            <a href="{{ route('login') }}" class="text-emerald-600 hover:text-emerald-700 font-medium">Log masuk</a>
+        </p>
+    </div>
+
+</body>
+</html>
+```
+
+---
+
+### Langkah 21: Kemas Kini Laluan untuk Auth
+
+Sekarang kita perlu:
+1. Tambah laluan auth (log masuk, daftar, log keluar)
+2. Lindungi laluan CRUD dengan middleware `auth`
+3. Laluan auth hanya boleh diakses oleh tetamu (middleware `guest`)
+
+**Fail:** `routes/web.php`
+
+```php
+<?php
+
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\MaklumatController;
+use App\Http\Controllers\PembayarController;
+use App\Http\Controllers\SemakController;
+use Illuminate\Support\Facades\Route;
+
+// =============================================
+// Laluan Auth (Tetamu sahaja)
+// =============================================
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
+    Route::get('/daftar', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/daftar', [RegisterController::class, 'register']);
+});
+
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
+
+// =============================================
+// Laluan Dilindungi (Auth Required)
+// =============================================
+Route::middleware(['auth', 'log.akses'])->group(function () {
+    // Halaman utama → senarai pembayar
+    Route::get('/', fn() => redirect()->route('pembayar.index'));
+
+    // CRUD Pembayar
+    Route::resource('pembayar', PembayarController::class);
+
+    // Semakan sistem
+    Route::get('/semak', [SemakController::class, 'index'])->name('semak');
+
+    // Maklumat laluan
+    Route::get('/maklumat/laluan', [MaklumatController::class, 'laluan'])->name('maklumat.laluan');
+
+    // Admin dashboard
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+    });
+});
+```
+
+**Penjelasan:**
+- `Route::middleware('guest')` — Hanya tetamu (belum log masuk) boleh akses
+- `Route::middleware('auth')` — Hanya pengguna yang sudah log masuk
+- `route('login')` — Laravel secara automatik redirect ke laluan `login` jika pengguna belum log masuk
+- `Auth::attempt($credentials)` — Sahkan kelayakan dan cipta sesi
+
+---
+
+### Langkah 22: Kemas Kini Navigasi
+
+Tambah maklumat pengguna dan butang "Log Keluar" pada navigasi.
+
+**Fail:** `resources/views/layouts/app.blade.php`
+
+Tambah blok berikut selepas senarai pautan navigasi, di dalam `<div class="flex justify-between h-16">`:
+
+```blade
+@auth
+    <div class="hidden md:flex items-center">
+        <span class="text-emerald-200 text-sm mr-3">{{ Auth::user()->name }}</span>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="px-3 py-2 rounded-md text-sm font-medium text-emerald-100 hover:bg-emerald-600 hover:text-white">
+                Log Keluar
+            </button>
+        </form>
+    </div>
+@endauth
+```
+
+---
+
+### Langkah 23: Cipta Admin Seeder
+
+Tambah pengguna admin untuk ujian.
+
+**Fail:** `database/seeders/DatabaseSeeder.php`
+
+```php
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    /**
+     * Seed pangkalan data aplikasi.
+     */
+    public function run(): void
+    {
+        // Cipta pengguna admin untuk ujian
+        \App\Models\User::factory()->create([
+            'name' => 'Admin Zakat',
+            'email' => 'admin@zakat.test',
+            'password' => bcrypt('password'),
+        ]);
+
+        $this->call([
+            PembayarSeeder::class,
+            JenisZakatSeeder::class,
+            PembayaranSeeder::class,
+        ]);
+    }
+}
+```
+
+Jalankan seeder untuk mencipta pengguna admin:
+
+```bash
+php artisan db:seed
+```
+
+---
+
+### Langkah 24: Uji Pengesahan
+
+| # | Ujian | Langkah |
+|---|-------|---------|
+| 1 | Log masuk | Buka `/login`, masukkan admin@zakat.test / password |
+| 2 | Akses dilindungi | Buka `/pembayar` tanpa log masuk → redirect ke `/login` |
+| 3 | Log keluar | Klik "Log Keluar" → redirect ke `/login` |
+| 4 | Daftar baru | Buka `/daftar`, isi borang, submit → log masuk automatik |
+| 5 | Ingat saya | Log masuk dengan "Ingat Saya" → sesi kekal selepas tutup pelayar |
+| 6 | Pengesahan gagal | Masukkan kata laluan salah → mesej ralat |
+
+### Konsep Authentication dalam Laravel
+
+| Konsep | Penerangan |
+|--------|------------|
+| `Auth::attempt()` | Sahkan kelayakan pengguna (e-mel + kata laluan) |
+| `Auth::login($user)` | Log masuk pengguna secara manual |
+| `Auth::logout()` | Log keluar pengguna semasa |
+| `Auth::user()` | Dapatkan objek pengguna semasa |
+| `Auth::check()` | Semak sama ada pengguna sudah log masuk |
+| `@auth` / `@guest` | Arahan Blade untuk semak status log masuk |
+| `middleware('auth')` | Lindungi laluan — redirect ke login jika belum log masuk |
+| `middleware('guest')` | Laluan hanya untuk tetamu — redirect jika sudah log masuk |
+| `Hash::make()` | Hash kata laluan sebelum simpan ke DB |
+| `bcrypt()` | Fungsi bantuan untuk hash (sama seperti Hash::make) |
+| `$request->intended()` | Redirect ke halaman asal selepas log masuk |
+| `session()->regenerate()` | Jana semula ID sesi untuk keselamatan |
+
+---
+
 ## Struktur Fail
 
 ```
@@ -2768,6 +3227,9 @@ contoh/hari-2/
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/
+│   │   │   ├── Auth/
+│   │   │   │   ├── LoginController.php          ← BARU: log masuk & log keluar
+│   │   │   │   └── RegisterController.php       ← BARU: pendaftaran pengguna
 │   │   │   ├── Controller.php
 │   │   │   ├── MaklumatController.php
 │   │   │   ├── PembayarController.php          ← CRUD + eager loading hubungan
@@ -2795,14 +3257,17 @@ contoh/hari-2/
 │   │   ├── 2024_01_01_000002_create_jenis_zakats_table.php    ← BARU
 │   │   └── 2024_01_01_000003_create_pembayarans_table.php    ← BARU
 │   └── seeders/
-│       ├── DatabaseSeeder.php                  ← DIKEMASKINI: panggil 3 seeder
+│       ├── DatabaseSeeder.php                  ← DIKEMASKINI: + admin user + panggil 3 seeder
 │       ├── JenisZakatSeeder.php                ← BARU: 5 jenis zakat
 │       ├── PembayarSeeder.php                  ← 10 pembayar
 │       └── PembayaranSeeder.php                ← BARU: 20 pembayaran
 ├── resources/
 │   └── views/
+│       ├── auth/
+│       │   ├── login.blade.php                 ← BARU: halaman log masuk (standalone)
+│       │   └── register.blade.php              ← BARU: halaman pendaftaran (standalone)
 │       ├── layouts/
-│       │   └── app.blade.php                   ← Layout utama dengan nav dan footer
+│       │   └── app.blade.php                   ← DIKEMASKINI: + butang Log Keluar
 │       ├── pembayar/
 │       │   ├── index.blade.php                 ← Senarai + carian + pagination
 │       │   ├── create.blade.php                ← Borang daftar baru
@@ -2819,7 +3284,7 @@ contoh/hari-2/
 │       ├── semak.blade.php                     ← Semakan sistem
 │       └── welcome.blade.php
 ├── routes/
-│   └── web.php                                 ← Semua laluan aplikasi
+│   └── web.php                                 ← DIKEMASKINI: + laluan auth & middleware auth
 ├── .env.example
 ├── composer.json
 └── README.md                                   ← Fail ini
@@ -2841,6 +3306,7 @@ contoh/hari-2/
 | **Penghalaan** | `Route::resource`, `Route::get`, kumpulan laluan, prefix, named routes, middleware pada laluan |
 | **Middleware** | `LogAkses` (log setiap permintaan), `SemakWaktuPejabat` (hadkan akses mengikut waktu), pendaftaran alias |
 | **Paparan Blade** | Layout dengan `@yield`/`@section`, CRUD views, `@forelse`, `@error`, `@csrf`, `@method`, hubungan dalam Blade |
+| **Pengesahan (Auth)** | `LoginController`, `RegisterController`, paparan log masuk & pendaftaran, middleware `auth` & `guest`, `Auth::attempt()`, `Hash::make()` |
 
 ### Peta hubungan lengkap
 
@@ -2876,6 +3342,8 @@ php artisan make:model Pembayaran -m
 php artisan make:controller PembayarController --resource
 php artisan make:controller SemakController
 php artisan make:controller MaklumatController
+php artisan make:controller Auth/LoginController
+php artisan make:controller Auth/RegisterController
 
 # ─── Middleware ───
 php artisan make:middleware LogAkses

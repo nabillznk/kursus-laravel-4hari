@@ -36,7 +36,7 @@ class Pembayar extends Model
     public function scopeCarian($query, $carian)
     {
         return $query->where('nama', 'like', "%{$carian}%")
-                     ->orWhere('no_ic', 'like', "%{$carian}%");
+            ->orWhere('no_ic', 'like', "%{$carian}%");
     }
 
     /**

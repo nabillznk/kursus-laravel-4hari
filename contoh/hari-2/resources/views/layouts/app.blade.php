@@ -32,6 +32,17 @@
                         Semak Sistem
                     </a>
                 </div>
+                @auth
+                    <div class="hidden md:flex items-center">
+                        <span class="text-emerald-200 text-sm mr-3">{{ Auth::user()->name }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="px-3 py-2 rounded-md text-sm font-medium text-emerald-100 hover:bg-emerald-600 hover:text-white">
+                                Log Keluar
+                            </button>
+                        </form>
+                    </div>
+                @endauth
             </div>
         </div>
     </nav>

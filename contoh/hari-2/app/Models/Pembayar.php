@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pembayar extends Model
 {
@@ -62,5 +63,26 @@ class Pembayar extends Model
         }
 
         return 'RM ' . number_format($this->pendapatan_bulanan, 2);
+    }
+
+    // ──────────────────────────────────────────────
+    // Hubungan (Relationships)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Seorang pembayar mempunyai banyak pembayaran.
+     * (One-to-Many: Pembayar hasMany Pembayaran)
+     */
+    public function pembayarans(): HasMany
+    {
+        return $this->hasMany(Pembayaran::class);
+    }
+
+    /**
+     * Aksesor: Jumlah keseluruhan bayaran sah pembayar.
+     */
+    public function getJumlahBayaranAttribute(): float
+    {
+        return (float) $this->pembayarans()->where('status', 'sah')->sum('jumlah');
     }
 }

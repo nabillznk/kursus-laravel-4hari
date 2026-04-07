@@ -1,4 +1,4 @@
-# Hari 2 -- Penghalaan, Pengawal & Middleware (Panduan Bengkel)
+# Hari 2 -- Penghalaan, Pengawal, Middleware & Hubungan Model
 
 > **Sistem Pengurusan Zakat Kedah** -- Kursus Laravel 4 Hari
 > Tempoh: 6 jam | Bahasa: Melayu | Tahap: Permulaan
@@ -9,17 +9,18 @@
 
 Pada Hari 1, kita telah mencipta projek `sistem-zakat`, menyediakan pangkalan data `zakat_kedah`, dan membina persekitaran pembangunan menggunakan Laragon (atau pelayan pembangunan PHP).
 
-Hari ini kita akan membina **keseluruhan sistem CRUD Pembayar** beserta ciri-ciri tambahan:
+Hari ini kita akan membina **keseluruhan sistem CRUD Pembayar** beserta model hubungan (relationships), middleware, dan ciri-ciri tambahan:
 
 | # | Topik | Perkara yang Dipelajari |
 |---|-------|------------------------|
-| 1 | **Model & Migrasi** | Cipta model `Pembayar` dengan migrasi, skop tempatan (local scope), dan aksesor (accessor) |
-| 2 | **Pengawal** | Pengawal sumber (resource controller) dengan 7 kaedah CRUD dan pengesahan (validation) |
-| 3 | **Seeder** | Data contoh untuk pengujian menggunakan seeder |
-| 4 | **Middleware** | Cipta middleware tersuai untuk log akses dan semak waktu pejabat |
-| 5 | **Laluan** | Kumpulan laluan, prefix, middleware alias, laluan sumber |
-| 6 | **Paparan Blade** | Susun atur (layout), paparan CRUD lengkap, halaman semakan, halaman ralat |
-| 7 | **Pengawal Tambahan** | Pengawal untuk semakan sistem dan senarai laluan |
+| 1 | **Model & Migrasi** | Cipta model `Pembayar`, `JenisZakat`, `Pembayaran` dengan migrasi, skop, dan aksesor |
+| 2 | **Hubungan Model** | `hasMany`, `belongsTo`, eager loading, `withCount`, `withSum`, `doesntHave`, `whereHas` |
+| 3 | **Pengawal** | Pengawal sumber (resource controller) dengan 7 kaedah CRUD dan pengesahan (validation) |
+| 4 | **Seeder** | Data contoh untuk pengujian — 10 pembayar, 5 jenis zakat, 20 pembayaran |
+| 5 | **Middleware** | Cipta middleware tersuai untuk log akses dan semak waktu pejabat |
+| 6 | **Laluan** | Kumpulan laluan, prefix, middleware alias, laluan sumber |
+| 7 | **Paparan Blade** | Susun atur (layout), paparan CRUD lengkap, halaman semakan, halaman ralat |
+| 8 | **Pengawal Tambahan** | Pengawal untuk semakan sistem dan senarai laluan |
 
 Pastikan projek Laravel `sistem-zakat` daripada Hari 1 sudah wujud dan berfungsi sebelum meneruskan.
 
@@ -64,11 +65,13 @@ php artisan key:generate
 
 ---
 
-## Langkah 1: Cipta Model & Migrasi Pembayar
+## Bahagian A: Model, Migrasi & Seeder
+
+### Langkah 1: Cipta Model & Migrasi Pembayar
 
 Model `Pembayar` mewakili pembayar zakat dalam sistem. Kita akan mencipta model berserta fail migrasi untuk jadual pangkalan data.
 
-### Arahan Artisan
+#### Arahan Artisan
 
 ```bash
 php artisan make:model Pembayar -m
@@ -76,7 +79,7 @@ php artisan make:model Pembayar -m
 
 Bendera `-m` akan mencipta fail migrasi secara automatik bersama model.
 
-### Fail Migrasi
+#### 1a. Fail Migrasi
 
 Buka fail migrasi yang dijana di `database/migrations/` dan gantikan kandungannya dengan kod berikut.
 
@@ -119,22 +122,28 @@ return new class extends Migration
 };
 ```
 
-**Penerangan medan:**
+#### Penerangan Medan
 
 | Medan | Jenis | Keterangan |
-|-------|-------|------------|
-| `id` | Big Integer (auto-increment) | Kunci utama |
-| `nama` | String (255) | Nama penuh pembayar |
-| `no_ic` | String (12), unik | No. Kad Pengenalan (12 digit tanpa sengkang) |
-| `alamat` | Text | Alamat penuh |
-| `no_tel` | String (15) | Nombor telefon |
-| `email` | String, nullable | Alamat e-mel (pilihan) |
-| `pekerjaan` | String, nullable | Pekerjaan (pilihan) |
-| `pendapatan_bulanan` | Decimal (10,2), nullable | Pendapatan bulanan dalam RM (pilihan) |
-| `created_at` | Timestamp | Tarikh dicipta (dijana oleh `$table->timestamps()`) |
-| `updated_at` | Timestamp | Tarikh dikemaskini (dijana oleh `$table->timestamps()`) |
+|-------|-------|-----------|
+| `id` | `bigint` auto-increment | Kunci utama |
+| `nama` | `varchar(255)` | Nama penuh pembayar |
+| `no_ic` | `varchar(12)` unique | No. Kad Pengenalan (12 digit tanpa sengkang) |
+| `alamat` | `text` | Alamat penuh |
+| `no_tel` | `varchar(15)` | Nombor telefon |
+| `email` | `varchar(255)` nullable | Alamat e-mel (pilihan) |
+| `pekerjaan` | `varchar(255)` nullable | Pekerjaan (pilihan) |
+| `pendapatan_bulanan` | `decimal(10,2)` nullable | Pendapatan bulanan dalam RM (pilihan) |
+| `timestamps` | `datetime` | `created_at` dan `updated_at` automatik |
 
-### Fail Model
+**Konsep penting:**
+
+- `$table->id()` — Cipta lajur `id` sebagai kunci utama auto-increment.
+- `->unique()` — Memastikan tiada dua pembayar dengan No. IC yang sama.
+- `->nullable()` — Membenarkan lajur kosong (NULL).
+- `$table->timestamps()` — Cipta dua lajur `created_at` dan `updated_at` yang diurus oleh Laravel secara automatik.
+
+#### 1b. Fail Model
 
 **Fail:** `app/Models/Pembayar.php`
 
@@ -145,6 +154,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pembayar extends Model
 {
@@ -171,7 +181,7 @@ class Pembayar extends Model
     ];
 
     /**
-     * Skop carian -- cari mengikut nama atau no IC.
+     * Skop carian — cari mengikut nama atau no IC.
      */
     public function scopeCarian($query, $carian)
     {
@@ -204,219 +214,833 @@ class Pembayar extends Model
 
         return 'RM ' . number_format($this->pendapatan_bulanan, 2);
     }
+
+    // ──────────────────────────────────────────────
+    // Hubungan (Relationships)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Seorang pembayar mempunyai banyak pembayaran.
+     * (One-to-Many: Pembayar hasMany Pembayaran)
+     */
+    public function pembayarans(): HasMany
+    {
+        return $this->hasMany(Pembayaran::class);
+    }
+
+    /**
+     * Aksesor: Jumlah keseluruhan bayaran sah pembayar.
+     */
+    public function getJumlahBayaranAttribute(): float
+    {
+        return (float) $this->pembayarans()->where('status', 'sah')->sum('jumlah');
+    }
 }
 ```
 
-**Penerangan terperinci:**
+#### Penerangan Konsep Model
 
-- **`$fillable`** -- Senarai medan yang dibenarkan untuk mass-assignment. Ini melindungi daripada serangan mass-assignment di mana pengguna mungkin menghantar medan tambahan yang tidak dijangka.
+| Konsep | Contoh Penggunaan | Penerangan |
+|--------|-------------------|-----------|
+| `$fillable` | `Pembayar::create($data)` | Senarai medan yang boleh diisi melalui mass-assignment. Ini melindungi daripada serangan mass-assignment. |
+| `$casts` | `$pembayar->pendapatan_bulanan` | Laravel secara automatik tukar jenis data. `decimal:2` memastikan 2 tempat perpuluhan. |
+| `scopeCarian()` | `Pembayar::carian('Ahmad')->get()` | Skop tempatan (local scope) — kaedah query yang boleh diguna semula. Panggil tanpa prefix `scope`. |
+| `getIcFormatAttribute()` | `$pembayar->ic_format` | Aksesor — cipta atribut maya yang memformat data. Panggil sebagai property (`ic_format`), bukan method. |
+| `getPendapatanFormatAttribute()` | `$pembayar->pendapatan_format` | Aksesor — format pendapatan dengan simbol RM dan koma. |
+| `pembayarans()` | `$pembayar->pembayarans` | **Hubungan hasMany** — seorang pembayar boleh ada banyak pembayaran. Topik utama Hari 2! |
+| `getJumlahBayaranAttribute()` | `$pembayar->jumlah_bayaran` | Aksesor yang menggunakan hubungan untuk mengira jumlah bayaran sah. |
 
-- **`$casts`** -- Menukar jenis data secara automatik. `'pendapatan_bulanan' => 'decimal:2'` memastikan nilai sentiasa dalam format perpuluhan dengan 2 tempat perpuluhan.
-
-- **`scopeCarian($query, $carian)`** -- Skop tempatan yang membolehkan carian mengikut nama atau no IC. Cara penggunaan:
-  ```php
-  // Dalam pengawal
-  Pembayar::carian('Ahmad')->get();
-
-  // Dalam Tinker
-  Pembayar::carian('850101')->first();
-  ```
-
-- **`getIcFormatAttribute()`** -- Aksesor yang memformat no IC 12 digit kepada format bersengkang. Contoh: `850101145678` menjadi `850101-14-5678`. Cara penggunaan dalam paparan Blade:
-  ```blade
-  {{ $pembayar->ic_format }}
-  ```
-
-- **`getPendapatanFormatAttribute()`** -- Aksesor yang memformat pendapatan dengan simbol RM dan pemisah ribuan. Contoh: `3500.00` menjadi `RM 3,500.00`. Jika pendapatan tiada (null), ia mengembalikan teks `'Tiada maklumat'`. Cara penggunaan dalam paparan Blade:
-  ```blade
-  {{ $pembayar->pendapatan_format }}
-  ```
+> **Nota:** Perhatikan perbezaan antara `$pembayar->pembayarans` (property — pulangkan Collection) dan `$pembayar->pembayarans()` (method — pulangkan query builder). Guna method `()` apabila mahu tambah syarat seperti `where`, `sum`, dll.
 
 ---
 
-## Langkah 2: Cipta Pengawal Pembayar
+### Langkah 2: Cipta Model & Migrasi JenisZakat
 
-Pengawal sumber (resource controller) mengandungi 7 kaedah standard untuk operasi CRUD: `index`, `create`, `store`, `show`, `edit`, `update`, dan `destroy`.
+Model `JenisZakat` mewakili jenis-jenis zakat yang boleh dibayar (contoh: Zakat Fitrah, Zakat Pendapatan, dll.).
 
-### Arahan Artisan
+#### Arahan Artisan
 
 ```bash
-php artisan make:controller PembayarController --resource
+php artisan make:model JenisZakat -m
 ```
 
-Bendera `--resource` akan menjana pengawal dengan 7 kaedah CRUD yang kosong.
+#### 2a. Fail Migrasi
 
-### Fail Pengawal
-
-**Fail:** `app/Http/Controllers/PembayarController.php`
+**Fail:** `database/migrations/2024_01_01_000002_create_jenis_zakats_table.php`
 
 ```php
 <?php
 
-namespace App\Http\Controllers;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use App\Models\Pembayar;
-use Illuminate\Http\Request;
-
-class PembayarController extends Controller
+return new class extends Migration
 {
     /**
-     * Papar senarai pembayar zakat.
+     * Cipta jadual jenis_zakats.
      */
-    public function index(Request $request)
+    public function up(): void
     {
-        $carian = $request->query('carian');
-
-        $pembayars = Pembayar::query()
-            ->when($carian, fn($query) => $query->carian($carian))
-            ->orderBy('nama')
-            ->paginate(15)
-            ->withQueryString();
-
-        return view('pembayar.index', compact('pembayars', 'carian'));
+        Schema::create('jenis_zakats', function (Blueprint $table) {
+            $table->id();
+            $table->string('nama');
+            $table->decimal('kadar', 8, 4);
+            $table->text('penerangan')->nullable();
+            $table->boolean('is_aktif')->default(true);
+            $table->timestamps();
+        });
     }
 
     /**
-     * Papar borang daftar pembayar baru.
+     * Padam jadual jenis_zakats.
      */
-    public function create()
+    public function down(): void
     {
-        return view('pembayar.create');
+        Schema::dropIfExists('jenis_zakats');
     }
+};
+```
+
+#### Penerangan Medan
+
+| Medan | Jenis | Keterangan |
+|-------|-------|-----------|
+| `id` | `bigint` auto-increment | Kunci utama |
+| `nama` | `varchar(255)` | Nama jenis zakat (cth: Zakat Fitrah, Zakat Pendapatan) |
+| `kadar` | `decimal(8,4)` | Kadar peratusan atau nilai tetap (cth: 2.5000 = 2.5%, atau 7.0000 = RM 7) |
+| `penerangan` | `text` nullable | Penerangan ringkas tentang jenis zakat |
+| `is_aktif` | `boolean` default `true` | Status aktif/tidak aktif |
+| `timestamps` | `datetime` | `created_at` dan `updated_at` |
+
+#### 2b. Fail Model
+
+**Fail:** `app/Models/JenisZakat.php`
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class JenisZakat extends Model
+{
+    use HasFactory;
 
     /**
-     * Simpan pembayar baru ke pangkalan data.
+     * Medan yang boleh diisi secara mass-assignment.
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'nama'                => 'required|string|max:255',
-            'no_ic'               => 'required|string|size:12|unique:pembayars,no_ic',
-            'alamat'              => 'required|string',
-            'no_tel'              => 'required|string|max:15',
-            'email'               => 'nullable|email|max:255',
-            'pekerjaan'           => 'nullable|string|max:255',
-            'pendapatan_bulanan'  => 'nullable|numeric|min:0',
-        ], [
-            'nama.required'       => 'Sila masukkan nama penuh.',
-            'no_ic.required'      => 'Sila masukkan No. Kad Pengenalan.',
-            'no_ic.size'          => 'No. KP mestilah 12 digit.',
-            'no_ic.unique'        => 'No. KP ini telah didaftarkan.',
-            'alamat.required'     => 'Sila masukkan alamat.',
-            'no_tel.required'     => 'Sila masukkan nombor telefon.',
-            'email.email'         => 'Format e-mel tidak sah.',
-            'pendapatan_bulanan.numeric' => 'Pendapatan mestilah dalam bentuk angka.',
-            'pendapatan_bulanan.min'     => 'Pendapatan tidak boleh negatif.',
-        ]);
-
-        Pembayar::create($validated);
-
-        return redirect()
-            ->route('pembayar.index')
-            ->with('success', 'Pembayar berjaya didaftarkan.');
-    }
+    protected $fillable = [
+        'nama',
+        'kadar',
+        'penerangan',
+        'is_aktif',
+    ];
 
     /**
-     * Papar maklumat lengkap pembayar.
+     * Penukaran jenis data automatik.
      */
-    public function show(Pembayar $pembayar)
-    {
-        return view('pembayar.show', compact('pembayar'));
-    }
+    protected $casts = [
+        'kadar'    => 'decimal:4',
+        'is_aktif' => 'boolean',
+    ];
+
+    // ──────────────────────────────────────────────
+    // Hubungan (Relationships)
+    // ──────────────────────────────────────────────
 
     /**
-     * Papar borang kemaskini pembayar.
+     * Satu jenis zakat mempunyai banyak pembayaran.
+     * (One-to-Many: JenisZakat hasMany Pembayaran)
      */
-    public function edit(Pembayar $pembayar)
+    public function pembayarans(): HasMany
     {
-        return view('pembayar.edit', compact('pembayar'));
+        return $this->hasMany(Pembayaran::class);
     }
 
-    /**
-     * Kemaskini maklumat pembayar.
-     */
-    public function update(Request $request, Pembayar $pembayar)
-    {
-        $validated = $request->validate([
-            'nama'                => 'required|string|max:255',
-            'no_ic'               => 'required|string|size:12|unique:pembayars,no_ic,' . $pembayar->id,
-            'alamat'              => 'required|string',
-            'no_tel'              => 'required|string|max:15',
-            'email'               => 'nullable|email|max:255',
-            'pekerjaan'           => 'nullable|string|max:255',
-            'pendapatan_bulanan'  => 'nullable|numeric|min:0',
-        ], [
-            'nama.required'       => 'Sila masukkan nama penuh.',
-            'no_ic.required'      => 'Sila masukkan No. Kad Pengenalan.',
-            'no_ic.size'          => 'No. KP mestilah 12 digit.',
-            'no_ic.unique'        => 'No. KP ini telah didaftarkan.',
-            'alamat.required'     => 'Sila masukkan alamat.',
-            'no_tel.required'     => 'Sila masukkan nombor telefon.',
-            'email.email'         => 'Format e-mel tidak sah.',
-            'pendapatan_bulanan.numeric' => 'Pendapatan mestilah dalam bentuk angka.',
-            'pendapatan_bulanan.min'     => 'Pendapatan tidak boleh negatif.',
-        ]);
-
-        $pembayar->update($validated);
-
-        return redirect()
-            ->route('pembayar.show', $pembayar)
-            ->with('success', 'Maklumat pembayar berjaya dikemaskini.');
-    }
+    // ──────────────────────────────────────────────
+    // Skop (Scopes)
+    // ──────────────────────────────────────────────
 
     /**
-     * Padam pembayar dari pangkalan data.
+     * Skop: Hanya jenis zakat yang aktif.
      */
-    public function destroy(Pembayar $pembayar)
+    public function scopeAktif($query)
     {
-        $pembayar->delete();
-
-        return redirect()
-            ->route('pembayar.index')
-            ->with('success', 'Pembayar berjaya dipadamkan.');
+        return $query->where('is_aktif', true);
     }
 }
 ```
 
-### Penerangan Setiap Kaedah
+**Penerangan:**
 
-| Kaedah | Fungsi | Keterangan |
-|--------|--------|------------|
-| `index()` | Papar senarai | Menyokong carian melalui query string `?carian=`. Menggunakan `when()` untuk menambah skop carian secara bersyarat. Paginate 15 rekod per halaman. `withQueryString()` memastikan parameter carian dikekalkan semasa navigasi halaman. |
-| `create()` | Papar borang baru | Mengembalikan paparan borang pendaftaran. Tiada data diperlukan. |
-| `store()` | Simpan rekod baru | Mengesahkan input dengan peraturan terperinci dan mesej ralat dalam Bahasa Melayu. `size:12` memastikan no IC tepat 12 digit. `unique:pembayars,no_ic` menghalang pendaftaran berulang. Selepas berjaya, mengalih ke senarai dengan mesej kejayaan. |
-| `show()` | Papar butiran | Menggunakan Route Model Binding -- Laravel secara automatik mencari pembayar berdasarkan ID dalam URL. |
-| `edit()` | Papar borang kemaskini | Sama seperti `show()` tetapi mengembalikan paparan borang untuk kemaskini. |
-| `update()` | Kemaskini rekod | Hampir sama dengan `store()` tetapi dengan `unique:pembayars,no_ic,' . $pembayar->id` untuk mengecualikan rekod semasa daripada semakan keunikan. |
-| `destroy()` | Padam rekod | Memadamkan pembayar dan mengalih ke senarai dengan mesej kejayaan. |
-
-### Jadual Laluan Sumber (Resource Routes)
-
-`Route::resource('pembayar', PembayarController::class)` menjana 7 laluan berikut secara automatik:
-
-| Kaedah HTTP | URI | Nama Laluan | Kaedah Pengawal |
-|-------------|-----|-------------|-----------------|
-| GET | `/pembayar` | pembayar.index | index() |
-| GET | `/pembayar/create` | pembayar.create | create() |
-| POST | `/pembayar` | pembayar.store | store() |
-| GET | `/pembayar/{pembayar}` | pembayar.show | show() |
-| GET | `/pembayar/{pembayar}/edit` | pembayar.edit | edit() |
-| PUT/PATCH | `/pembayar/{pembayar}` | pembayar.update | update() |
-| DELETE | `/pembayar/{pembayar}` | pembayar.destroy | destroy() |
+- **`hasMany(Pembayaran::class)`** — Satu jenis zakat boleh mempunyai banyak rekod pembayaran. Laravel secara automatik mencari lajur `jenis_zakat_id` pada jadual `pembayarans`.
+- **`scopeAktif`** — Hanya pulangkan jenis zakat yang aktif. Penggunaan: `JenisZakat::aktif()->get()`.
+- **`'is_aktif' => 'boolean'`** — Cast ke `true`/`false` supaya boleh guna `@if ($jenisZakat->is_aktif)` dalam Blade.
 
 ---
 
-## Langkah 3: Cipta Seeder
+### Langkah 3: Cipta Model & Migrasi Pembayaran
 
-Seeder digunakan untuk memasukkan data contoh ke dalam pangkalan data supaya kita boleh menguji aplikasi tanpa perlu memasukkan data secara manual.
+Model `Pembayaran` mewakili transaksi pembayaran zakat. Ia mempunyai **dua hubungan belongsTo** — ke `Pembayar` dan `JenisZakat`.
 
-### Arahan Artisan
+#### Arahan Artisan
 
 ```bash
-php artisan make:seeder PembayarSeeder
+php artisan make:model Pembayaran -m
 ```
 
-### Fail PembayarSeeder
+#### 3a. Fail Migrasi
+
+**Fail:** `database/migrations/2024_01_01_000003_create_pembayarans_table.php`
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Cipta jadual pembayarans.
+     */
+    public function up(): void
+    {
+        Schema::create('pembayarans', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('pembayar_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('jenis_zakat_id')->constrained()->cascadeOnDelete();
+            $table->decimal('jumlah', 12, 2);
+            $table->date('tarikh_bayar');
+            $table->enum('cara_bayar', ['tunai', 'kad', 'fpx', 'online']);
+            $table->string('no_resit')->unique();
+            $table->enum('status', ['pending', 'sah', 'batal'])->default('pending');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Padam jadual pembayarans.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('pembayarans');
+    }
+};
+```
+
+#### Penerangan Medan
+
+| Medan | Jenis | Keterangan |
+|-------|-------|-----------|
+| `id` | `bigint` auto-increment | Kunci utama |
+| `pembayar_id` | `foreignId` | Kunci asing ke jadual `pembayars` — siapa yang bayar |
+| `jenis_zakat_id` | `foreignId` | Kunci asing ke jadual `jenis_zakats` — jenis zakat apa |
+| `jumlah` | `decimal(12,2)` | Jumlah bayaran dalam RM |
+| `tarikh_bayar` | `date` | Tarikh pembayaran dibuat |
+| `cara_bayar` | `enum` | Cara pembayaran: `tunai`, `kad`, `fpx`, `online` |
+| `no_resit` | `varchar` unique | Nombor resit unik (cth: ZK-2024-0001) |
+| `status` | `enum` default `pending` | Status pembayaran: `pending`, `sah`, `batal` |
+| `timestamps` | `datetime` | `created_at` dan `updated_at` |
+
+**Konsep penting dalam migrasi ini:**
+
+| Konsep | Kod | Penerangan |
+|--------|-----|-----------|
+| Kunci asing | `$table->foreignId('pembayar_id')->constrained()` | Cipta lajur `pembayar_id` yang merujuk kepada `pembayars.id`. Laravel meneka nama jadual daripada nama lajur secara automatik. |
+| Cascade delete | `->cascadeOnDelete()` | Apabila pembayar dipadam, semua pembayaran beliau turut dipadam secara automatik. |
+| Enum | `$table->enum('cara_bayar', ['tunai', 'kad', 'fpx', 'online'])` | Hadkan nilai lajur kepada senarai yang ditetapkan sahaja. Jika cuba masukkan nilai lain, MySQL akan menolak. |
+| Default | `->default('pending')` | Nilai lalai jika tidak dinyatakan semasa simpan. |
+
+#### 3b. Fail Model
+
+**Fail:** `app/Models/Pembayaran.php`
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Pembayaran extends Model
+{
+    use HasFactory;
+
+    /**
+     * Medan yang boleh diisi secara mass-assignment.
+     */
+    protected $fillable = [
+        'pembayar_id',
+        'jenis_zakat_id',
+        'jumlah',
+        'tarikh_bayar',
+        'cara_bayar',
+        'no_resit',
+        'status',
+    ];
+
+    /**
+     * Penukaran jenis data automatik.
+     */
+    protected $casts = [
+        'jumlah'       => 'decimal:2',
+        'tarikh_bayar' => 'date',
+    ];
+
+    // ──────────────────────────────────────────────
+    // Hubungan (Relationships)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Pembayaran ini milik seorang pembayar.
+     * (Many-to-One: Pembayaran belongsTo Pembayar)
+     */
+    public function pembayar(): BelongsTo
+    {
+        return $this->belongsTo(Pembayar::class);
+    }
+
+    /**
+     * Pembayaran ini milik satu jenis zakat.
+     * (Many-to-One: Pembayaran belongsTo JenisZakat)
+     */
+    public function jenisZakat(): BelongsTo
+    {
+        return $this->belongsTo(JenisZakat::class);
+    }
+
+    // ──────────────────────────────────────────────
+    // Aksesor (Accessors)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Aksesor: Format jumlah dengan RM (RM 150.00).
+     */
+    public function getJumlahFormatAttribute(): string
+    {
+        return 'RM ' . number_format($this->jumlah, 2);
+    }
+
+    // ──────────────────────────────────────────────
+    // Skop (Scopes)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Skop: Hanya pembayaran yang sah.
+     */
+    public function scopeSah($query)
+    {
+        return $query->where('status', 'sah');
+    }
+}
+```
+
+**Penerangan:**
+
+| Konsep | Kod | Penerangan |
+|--------|-----|-----------|
+| belongsTo Pembayar | `$this->belongsTo(Pembayar::class)` | Setiap pembayaran milik seorang pembayar. Laravel mencari lajur `pembayar_id` secara automatik. |
+| belongsTo JenisZakat | `$this->belongsTo(JenisZakat::class)` | Setiap pembayaran milik satu jenis zakat. Nama method `jenisZakat()` ditukar kepada `jenis_zakat_id` secara automatik (camelCase ke snake_case). |
+| Cast `date` | `'tarikh_bayar' => 'date'` | Laravel tukar kepada objek Carbon, jadi boleh guna `$bayaran->tarikh_bayar->format('d/m/Y')`. |
+| scopeSah | `Pembayaran::sah()->get()` | Skop yang hanya pulangkan pembayaran berstatus `sah`. |
+
+---
+
+### Langkah 4: Memahami Hubungan Model (Relationships)
+
+Ini adalah **topik paling penting** dalam Hari 2. Hubungan model (Eloquent Relationships) membolehkan kita mengakses data berkaitan antara jadual tanpa menulis SQL JOIN secara manual. Laravel menguruskan semuanya dengan kaedah yang mudah dan elegan.
+
+#### 4a. Diagram Hubungan
+
+```
+┌─────────────────┐              ┌──────────────────┐              ┌─────────────────┐
+│    Pembayar     │              │   Pembayaran     │              │   JenisZakat    │
+├─────────────────┤              ├──────────────────┤              ├─────────────────┤
+│ id          PK  │───┐         │ id           PK  │         ┌───│ id          PK  │
+│ nama            │   │         │ pembayar_id  FK  │◄────────┘   │ nama            │
+│ no_ic           │   └────────►│ jenis_zakat_id FK│             │ kadar           │
+│ alamat          │              │ jumlah           │              │ penerangan      │
+│ no_tel          │              │ tarikh_bayar     │              │ is_aktif        │
+│ email           │              │ cara_bayar       │              └─────────────────┘
+│ pekerjaan       │              │ no_resit         │
+│ pendapatan      │              │ status           │
+└─────────────────┘              └──────────────────┘
+
+Pembayar  (1) ──── hasMany ────► (N) Pembayaran
+JenisZakat(1) ──── hasMany ────► (N) Pembayaran
+
+Pembayaran ──── belongsTo ────► Pembayar
+Pembayaran ──── belongsTo ────► JenisZakat
+```
+
+**Ringkasan hubungan dalam kod:**
+
+| Model | Method | Jenis | Sasaran | Penerangan |
+|-------|--------|-------|---------|-----------|
+| `Pembayar` | `pembayarans()` | `hasMany` | `Pembayaran` | Seorang pembayar boleh ada banyak pembayaran |
+| `JenisZakat` | `pembayarans()` | `hasMany` | `Pembayaran` | Satu jenis zakat boleh ada banyak pembayaran |
+| `Pembayaran` | `pembayar()` | `belongsTo` | `Pembayar` | Setiap pembayaran milik seorang pembayar |
+| `Pembayaran` | `jenisZakat()` | `belongsTo` | `JenisZakat` | Setiap pembayaran milik satu jenis zakat |
+
+**Bagaimana Laravel menentukan lajur kunci asing?**
+
+Laravel menggunakan konvensyen penamaan:
+- `hasMany(Pembayaran::class)` pada model `Pembayar` — Laravel cari lajur `pembayar_id` pada jadual `pembayarans`.
+- `belongsTo(Pembayar::class)` pada model `Pembayaran` — Laravel cari lajur `pembayar_id` pada jadual `pembayarans` (jadual model semasa).
+- `belongsTo(JenisZakat::class)` — Method name `jenisZakat()` (camelCase) ditukar kepada `jenis_zakat_id` (snake_case + `_id`).
+
+---
+
+#### 4b. Contoh Penggunaan dalam Tinker
+
+Buka terminal dan jalankan:
+
+```bash
+php artisan tinker
+```
+
+##### Akses hubungan hasMany — dapatkan semua pembayaran seorang pembayar
+
+```php
+// Cari pembayar pertama
+$pembayar = \App\Models\Pembayar::find(1);
+echo $pembayar->nama;
+// => "Ahmad bin Abdullah"
+
+// Dapatkan semua pembayaran beliau
+$pembayar->pembayarans;
+// => Collection of 3 Pembayaran objects
+
+// Berapa banyak pembayaran?
+$pembayar->pembayarans->count();
+// => 3
+
+// Senarai nombor resit
+$pembayar->pembayarans->pluck('no_resit');
+// => ["ZK-2024-0001", "ZK-2024-0002", "ZK-2024-0003"]
+```
+
+##### Akses hubungan belongsTo — dapatkan maklumat pembayar dari pembayaran
+
+```php
+// Cari pembayaran pertama
+$pembayaran = \App\Models\Pembayaran::find(1);
+
+// Siapa pembayar?
+$pembayaran->pembayar->nama;
+// => "Ahmad bin Abdullah"
+
+// Apakah jenis zakat?
+$pembayaran->jenisZakat->nama;
+// => "Zakat Fitrah"
+
+// Berapa kadar?
+$pembayaran->jenisZakat->kadar;
+// => "7.0000"
+```
+
+##### Kira jumlah bayaran sah seorang pembayar
+
+```php
+$pembayar = \App\Models\Pembayar::find(1);
+
+// Guna hubungan sebagai query builder (method call dengan parentheses)
+$pembayar->pembayarans()->where('status', 'sah')->sum('jumlah');
+// => "1357.00"
+
+// Atau guna aksesor yang telah kita cipta dalam model
+$pembayar->jumlah_bayaran;
+// => 1357.0
+```
+
+> **Nota penting:** Perhatikan perbezaan antara:
+> - `$pembayar->pembayarans` (tanpa parentheses) — Akses sebagai property, pulangkan Collection (semua data dimuat).
+> - `$pembayar->pembayarans()` (dengan parentheses) — Akses sebagai method, pulangkan query builder (boleh tambah syarat `where`, `sum`, `count` dll.).
+
+##### Dapatkan pembayar yang pernah membuat pembayaran
+
+```php
+// has() — ada hubungan
+\App\Models\Pembayar::has('pembayarans')->get();
+// => Hanya pembayar yang mempunyai sekurang-kurangnya 1 pembayaran
+
+// has() dengan syarat minimum
+\App\Models\Pembayar::has('pembayarans', '>=', 3)->get();
+// => Pembayar yang mempunyai 3 atau lebih pembayaran
+```
+
+##### Dapatkan pembayar yang BELUM pernah membuat pembayaran
+
+```php
+// doesntHave() — tiada hubungan
+\App\Models\Pembayar::doesntHave('pembayarans')->pluck('nama');
+// => ["Nor Azizah binti Ibrahim", "Razak bin Che Mat"]
+// (Pembayar 4 dan 7 tiada rekod pembayaran dalam seeder)
+```
+
+##### Kira bilangan pembayaran setiap pembayar (withCount)
+
+```php
+\App\Models\Pembayar::withCount('pembayarans')
+    ->orderByDesc('pembayarans_count')
+    ->get()
+    ->each(function ($p) {
+        echo "$p->nama: $p->pembayarans_count pembayaran\n";
+    });
+
+// Output:
+// Ahmad bin Abdullah: 3 pembayaran
+// Mohd Faizal bin Hassan: 3 pembayaran
+// Ismail bin Yusof: 3 pembayaran
+// Nurul Huda binti Zakaria: 3 pembayaran
+// Aminah binti Sulaiman: 3 pembayaran
+// Siti Nurhaliza binti Mohd Razali: 2 pembayaran
+// Fatimah binti Omar: 2 pembayaran
+// Hassan bin Daud: 1 pembayaran
+// Nor Azizah binti Ibrahim: 0 pembayaran
+// Razak bin Che Mat: 0 pembayaran
+```
+
+##### Eager loading — elak masalah N+1 query
+
+```php
+// BURUK — N+1 query (1 query + N query untuk setiap pembayaran)
+$pembayarans = \App\Models\Pembayaran::all();
+foreach ($pembayarans as $b) {
+    echo $b->pembayar->nama;  // Setiap iterasi buat 1 query baru!
+}
+// Jika 20 pembayaran = 21 query keseluruhan!
+
+// BAIK — Eager loading (hanya 2 query)
+$pembayarans = \App\Models\Pembayaran::with(['pembayar', 'jenisZakat'])->get();
+foreach ($pembayarans as $b) {
+    echo $b->pembayar->nama;  // Tiada query tambahan!
+}
+// Hanya 3 query: pembayarans + pembayars + jenis_zakats
+```
+
+##### Dapatkan jenis zakat yang paling popular
+
+```php
+\App\Models\JenisZakat::withCount('pembayarans')
+    ->orderByDesc('pembayarans_count')
+    ->first();
+// => JenisZakat { nama: "Zakat Fitrah", pembayarans_count: 8 }
+```
+
+##### Kira jumlah kutipan mengikut jenis zakat
+
+```php
+\App\Models\JenisZakat::withSum('pembayarans', 'jumlah')
+    ->get()
+    ->each(function ($j) {
+        echo "$j->nama: RM " . number_format($j->pembayarans_sum_jumlah, 2) . "\n";
+    });
+
+// Output:
+// Zakat Fitrah: RM 56.00
+// Zakat Pendapatan: RM 9,900.00
+// Zakat Perniagaan: RM 7,700.00
+// Zakat Wang Simpanan: RM 1,300.00
+// Zakat Emas: RM 1,200.00
+```
+
+##### Carian dengan syarat pada hubungan (whereHas)
+
+```php
+// Pembayar yang pernah bayar zakat pendapatan (id = 2)
+\App\Models\Pembayar::whereHas('pembayarans', function ($query) {
+    $query->where('jenis_zakat_id', 2);
+})->pluck('nama');
+// => ["Ahmad bin Abdullah", "Siti Nurhaliza binti Mohd Razali", ...]
+
+// Pembayar yang ada pembayaran berstatus 'pending'
+\App\Models\Pembayar::whereHas('pembayarans', function ($query) {
+    $query->where('status', 'pending');
+})->pluck('nama');
+// => ["Ahmad bin Abdullah", "Fatimah binti Omar", "Aminah binti Sulaiman"]
+```
+
+---
+
+#### 4c. Contoh Penggunaan dalam Controller
+
+Berikut adalah contoh bagaimana hubungan model digunakan dalam pengawal sebenar.
+
+##### Papar pembayar dengan senarai pembayaran (sudah dilaksanakan)
+
+Ini adalah kod yang sudah ada dalam `PembayarController@show` projek ini:
+
+```php
+public function show(Pembayar $pembayar)
+{
+    // Eager load pembayaran beserta jenis zakat — elak masalah N+1
+    $pembayar->load('pembayarans.jenisZakat');
+
+    return view('pembayar.show', compact('pembayar'));
+}
+```
+
+**Apa yang berlaku:**
+
+1. `$pembayar->load(...)` — Lazy eager loading. Muat data hubungan selepas model sudah diambil.
+2. `'pembayarans.jenisZakat'` — Muat hubungan bersarang (nested). Pembayaran **dan** jenis zakat setiap pembayaran dimuat sekali gus.
+3. Dalam Blade, `$pembayar->pembayarans` dan `$bayaran->jenisZakat` boleh diakses tanpa query tambahan.
+
+##### Contoh lain — senarai pembayar dengan kiraan pembayaran
+
+```php
+// Dalam PembayarController@index — tambah withCount
+public function index(Request $request)
+{
+    $carian = $request->query('carian');
+
+    $pembayars = Pembayar::query()
+        ->withCount('pembayarans')                       // Tambah lajur pembayarans_count
+        ->when($carian, fn($query) => $query->carian($carian))
+        ->orderBy('nama')
+        ->paginate(15)
+        ->withQueryString();
+
+    return view('pembayar.index', compact('pembayars', 'carian'));
+}
+
+// Dalam paparan index.blade.php, boleh guna:
+// {{ $pembayar->pembayarans_count }} pembayaran
+```
+
+##### Contoh lain — laporan kutipan mengikut jenis zakat
+
+```php
+// Dalam controller laporan
+public function laporanKutipan()
+{
+    $jenisZakats = JenisZakat::aktif()
+        ->withCount(['pembayarans as pembayarans_sah_count' => function ($query) {
+            $query->where('status', 'sah');
+        }])
+        ->withSum(['pembayarans as jumlah_kutipan' => function ($query) {
+            $query->where('status', 'sah');
+        }], 'jumlah')
+        ->get();
+
+    return view('laporan.kutipan', compact('jenisZakats'));
+
+    // Dalam Blade:
+    // $jenisZakat->pembayarans_sah_count  — bilangan pembayaran sah
+    // $jenisZakat->jumlah_kutipan         — jumlah RM kutipan sah
+}
+```
+
+---
+
+#### 4d. Contoh Penggunaan dalam Paparan (Blade)
+
+##### Papar jumlah bayaran sah seorang pembayar
+
+```blade
+{{-- Guna aksesor jumlah_bayaran yang kita cipta dalam model Pembayar --}}
+<p>Jumlah Bayaran Sah: RM {{ number_format($pembayar->jumlah_bayaran, 2) }}</p>
+```
+
+##### Senarai pembayaran seorang pembayar (sudah dilaksanakan dalam `show.blade.php`)
+
+```blade
+{{-- Senarai Pembayaran — menggunakan hubungan hasMany --}}
+<div class="bg-white rounded-lg shadow mt-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800">Senarai Pembayaran</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-emerald-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">No. Resit</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Jenis Zakat</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Jumlah</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Tarikh Bayar</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Cara Bayar</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($pembayar->pembayarans as $bayaran)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ $bayaran->no_resit }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ $bayaran->jenisZakat->nama }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">RM {{ number_format($bayaran->jumlah, 2) }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ $bayaran->tarikh_bayar->format('d/m/Y') }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ ucfirst($bayaran->cara_bayar) }}</td>
+                        <td class="px-4 py-3 text-sm">
+                            @php
+                                $warnaStatus = match($bayaran->status) {
+                                    'sah'     => 'bg-emerald-100 text-emerald-800',
+                                    'pending' => 'bg-amber-100 text-amber-800',
+                                    'batal'   => 'bg-red-100 text-red-800',
+                                };
+                            @endphp
+                            <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold {{ $warnaStatus }}">
+                                {{ ucfirst($bayaran->status) }}
+                            </span>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            Tiada rekod pembayaran.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+```
+
+**Perkara penting dalam kod Blade di atas:**
+
+1. **`$pembayar->pembayarans`** — Akses hubungan hasMany. Pulangkan Collection semua pembayaran pembayar tersebut.
+2. **`$bayaran->jenisZakat->nama`** — Akses hubungan belongsTo bertingkat. Dapatkan nama jenis zakat melalui pembayaran.
+3. **`$bayaran->tarikh_bayar->format('d/m/Y')`** — Kerana kita cast `tarikh_bayar` sebagai `date` dalam model, ia menjadi objek Carbon. Boleh guna `format()` terus.
+4. **`@forelse ... @empty ... @endforelse`** — Papar kandungan jika ada data, mesej alternatif jika tiada.
+5. **`match($bayaran->status)`** — Guna `match` PHP 8 untuk tentukan warna lencana (badge) mengikut status.
+
+---
+
+#### 4e. Kes Penggunaan Lazim (Common Use Cases)
+
+Jadual ini merangkum pertanyaan biasa yang boleh dijawab menggunakan hubungan Eloquent dalam Sistem Zakat:
+
+| # | Kes Penggunaan | Kod Laravel | Penjelasan |
+|---|---------------|-------------|-----------|
+| 1 | Senarai pembayaran seorang pembayar | `$pembayar->pembayarans` | Hubungan `hasMany` — akses terus seperti property |
+| 2 | Nama pembayar dari pembayaran | `$pembayaran->pembayar->nama` | Hubungan `belongsTo` — akses model induk |
+| 3 | Jenis zakat dari pembayaran | `$pembayaran->jenisZakat->nama` | Hubungan `belongsTo` — akses model induk |
+| 4 | Jumlah kutipan sah keseluruhan | `Pembayaran::sah()->sum('jumlah')` | Gabungan scope + aggregate function |
+| 5 | Pembayar paling banyak bayar | `Pembayar::withCount('pembayarans')->orderByDesc('pembayarans_count')->first()` | `withCount` menambah lajur kiraan |
+| 6 | Elak N+1 query | `Pembayaran::with(['pembayar', 'jenisZakat'])->paginate(15)` | Eager loading — muat semua hubungan dalam 2-3 query |
+| 7 | Pembayar yang belum bayar | `Pembayar::doesntHave('pembayarans')->get()` | `doesntHave` — cari rekod tanpa hubungan |
+| 8 | Pembayar yang pernah bayar | `Pembayar::has('pembayarans')->get()` | `has` — cari rekod yang ada hubungan |
+| 9 | Jumlah kutipan per jenis | `JenisZakat::withSum('pembayarans', 'jumlah')->get()` | `withSum` — kira jumlah lajur dalam hubungan |
+| 10 | Jenis zakat paling popular | `JenisZakat::withCount('pembayarans')->orderByDesc('pembayarans_count')->first()` | `withCount` + `orderByDesc` |
+| 11 | Pembayar bayar >= 3 kali | `Pembayar::has('pembayarans', '>=', 3)->get()` | `has` dengan operator perbandingan |
+| 12 | Pembayar bayar zakat tertentu | `Pembayar::whereHas('pembayarans', fn($q) => $q->where('jenis_zakat_id', 2))->get()` | `whereHas` — syarat pada hubungan |
+| 13 | Muat hubungan selepas query | `$pembayar->load('pembayarans.jenisZakat')` | Lazy eager loading — muat kemudian |
+| 14 | Bilangan + jumlah sekali gus | `Pembayar::withCount('pembayarans')->withSum('pembayarans', 'jumlah')->get()` | Gabungan `withCount` dan `withSum` |
+
+---
+
+#### 4f. Perbezaan Kaedah Query Hubungan
+
+| Method | Fungsi | Contoh | Hasil |
+|--------|--------|--------|-------|
+| `has('hubungan')` | Tapis — hanya rekod yang **ada** hubungan | `Pembayar::has('pembayarans')->get()` | 8 pembayar (yang ada pembayaran) |
+| `doesntHave('hubungan')` | Tapis — hanya rekod yang **tiada** hubungan | `Pembayar::doesntHave('pembayarans')->get()` | 2 pembayar (tiada pembayaran) |
+| `whereHas('hubungan', fn)` | Tapis — ada hubungan **dengan syarat** | `Pembayar::whereHas('pembayarans', fn($q) => $q->sah())->get()` | Pembayar yang ada bayaran sah |
+| `withCount('hubungan')` | Tambah lajur **bilangan** hubungan | `Pembayar::withCount('pembayarans')->get()` | `$p->pembayarans_count` |
+| `withSum('hubungan', 'lajur')` | Tambah lajur **jumlah** dari hubungan | `JenisZakat::withSum('pembayarans', 'jumlah')->get()` | `$j->pembayarans_sum_jumlah` |
+| `with('hubungan')` | **Eager load** — muat data hubungan sekali gus | `Pembayaran::with('pembayar')->get()` | Elak N+1 query |
+| `load('hubungan')` | **Lazy eager load** — muat selepas model diambil | `$pembayar->load('pembayarans')` | Muat hubungan kemudian |
+
+---
+
+#### 4g. Memahami Masalah N+1 Query
+
+Masalah N+1 adalah salah satu isu prestasi paling biasa dalam aplikasi Laravel (dan mana-mana aplikasi yang menggunakan ORM). Ia berlaku apabila kita mengakses hubungan dalam gelung tanpa eager loading.
+
+##### Contoh masalah N+1
+
+```php
+// Query 1: SELECT * FROM pembayarans
+$pembayarans = Pembayaran::all();  // 1 query
+
+foreach ($pembayarans as $bayaran) {
+    // Query 2, 3, 4, ... N: SELECT * FROM pembayars WHERE id = ?
+    echo $bayaran->pembayar->nama;  // 1 query setiap iterasi!
+}
+// Jumlah: 1 + 20 = 21 query (jika 20 pembayaran)
+```
+
+**Mengapa ini masalah?** Jika ada 1000 pembayaran, kita akan buat 1001 query ke pangkalan data. Ini sangat perlahan dan membazir sumber pelayan.
+
+##### Penyelesaian dengan eager loading
+
+```php
+// Query 1: SELECT * FROM pembayarans
+// Query 2: SELECT * FROM pembayars WHERE id IN (1, 2, 3, 5, 6, 8, 9, 10)
+$pembayarans = Pembayaran::with('pembayar')->get();  // 2 query sahaja!
+
+foreach ($pembayarans as $bayaran) {
+    echo $bayaran->pembayar->nama;  // Tiada query tambahan!
+}
+// Jumlah: 2 query sahaja (tidak kira berapa banyak pembayaran)
+```
+
+##### Eager load pelbagai hubungan sekaligus
+
+```php
+// 3 query sahaja — untuk pembayarans, pembayars, dan jenis_zakats
+$pembayarans = Pembayaran::with(['pembayar', 'jenisZakat'])->get();
+
+foreach ($pembayarans as $bayaran) {
+    echo $bayaran->pembayar->nama . ' - ' . $bayaran->jenisZakat->nama;
+    // Tiada query tambahan!
+}
+```
+
+##### Eager load bersarang (nested)
+
+```php
+// Muat pembayar -> pembayarans -> jenis zakat
+$pembayars = Pembayar::with('pembayarans.jenisZakat')->get();
+
+foreach ($pembayars as $pembayar) {
+    foreach ($pembayar->pembayarans as $bayaran) {
+        echo $bayaran->jenisZakat->nama;  // Tiada query tambahan
+    }
+}
+// 3 query sahaja walaupun ada banyak pembayar dan pembayaran
+```
+
+##### Cara kenal pasti masalah N+1
+
+Gunakan `DB::enableQueryLog()` dalam tinker:
+
+```php
+\DB::enableQueryLog();
+
+// Kod yang disyaki ada N+1...
+$pembayarans = \App\Models\Pembayaran::all();
+foreach ($pembayarans as $b) { $b->pembayar->nama; }
+
+// Semak berapa query yang dijalankan
+count(\DB::getQueryLog());
+// => 21 (masalah N+1!)
+
+// Cuba dengan eager loading
+\DB::flushQueryLog();
+$pembayarans = \App\Models\Pembayaran::with('pembayar')->get();
+foreach ($pembayarans as $b) { $b->pembayar->nama; }
+
+count(\DB::getQueryLog());
+// => 2 (selesai!)
+```
+
+---
+
+### Langkah 5: Cipta Seeder
+
+Seeder digunakan untuk memasukkan data contoh ke dalam pangkalan data. Ini memudahkan pengujian dan pembangunan.
+
+#### 5a. Seeder Pembayar
 
 **Fail:** `database/seeders/PembayarSeeder.php`
 
@@ -535,13 +1159,289 @@ class PembayarSeeder extends Seeder
 }
 ```
 
-**Penerangan:**
+#### 5b. Seeder JenisZakat
 
-- Seeder ini memasukkan 10 rekod pembayar contoh dengan data realistik -- nama, no IC, alamat di Kedah, nombor telefon, e-mel, pekerjaan, dan pendapatan bulanan.
-- Perhatikan bahawa beberapa rekod mempunyai `email` dan `pendapatan_bulanan` yang `null` untuk menguji medan pilihan.
-- `Pembayar::create()` digunakan supaya mass-assignment dilindungi oleh `$fillable` dan `$casts` diaplikasikan secara automatik.
+**Fail:** `database/seeders/JenisZakatSeeder.php`
 
-### Kemaskini DatabaseSeeder
+```php
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\JenisZakat;
+use Illuminate\Database\Seeder;
+
+class JenisZakatSeeder extends Seeder
+{
+    /**
+     * Masukkan 5 jenis zakat contoh.
+     */
+    public function run(): void
+    {
+        $jenisZakats = [
+            [
+                'nama'       => 'Zakat Fitrah',
+                'kadar'      => 7.0000,
+                'penerangan' => 'Zakat yang wajib dibayar oleh setiap individu Muslim pada bulan Ramadan. Kadar ditetapkan berdasarkan harga beras tempatan.',
+                'is_aktif'   => true,
+            ],
+            [
+                'nama'       => 'Zakat Pendapatan',
+                'kadar'      => 2.5000,
+                'penerangan' => 'Zakat yang dikenakan ke atas pendapatan penggajian dan pendapatan bebas yang telah mencapai nisab.',
+                'is_aktif'   => true,
+            ],
+            [
+                'nama'       => 'Zakat Perniagaan',
+                'kadar'      => 2.5000,
+                'penerangan' => 'Zakat yang dikenakan ke atas harta perniagaan yang telah cukup haul dan nisab.',
+                'is_aktif'   => true,
+            ],
+            [
+                'nama'       => 'Zakat Wang Simpanan',
+                'kadar'      => 2.5000,
+                'penerangan' => 'Zakat yang dikenakan ke atas wang simpanan yang telah cukup haul (setahun) dan mencapai nisab.',
+                'is_aktif'   => true,
+            ],
+            [
+                'nama'       => 'Zakat Emas',
+                'kadar'      => 2.5000,
+                'penerangan' => 'Zakat yang dikenakan ke atas emas yang disimpan (tidak dipakai) yang telah cukup haul dan nisab.',
+                'is_aktif'   => true,
+            ],
+        ];
+
+        foreach ($jenisZakats as $jenis) {
+            JenisZakat::create($jenis);
+        }
+    }
+}
+```
+
+#### 5c. Seeder Pembayaran
+
+**Fail:** `database/seeders/PembayaranSeeder.php`
+
+```php
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Pembayaran;
+use Illuminate\Database\Seeder;
+
+class PembayaranSeeder extends Seeder
+{
+    /**
+     * Masukkan 20 rekod pembayaran contoh.
+     */
+    public function run(): void
+    {
+        $pembayarans = [
+            // Pembayar 1 — Ahmad bin Abdullah (3 pembayaran)
+            [
+                'pembayar_id'    => 1,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-28',
+                'cara_bayar'     => 'tunai',
+                'no_resit'       => 'ZK-2024-0001',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 1,
+                'jenis_zakat_id' => 2,
+                'jumlah'         => 1350.00,
+                'tarikh_bayar'   => '2024-06-15',
+                'cara_bayar'     => 'fpx',
+                'no_resit'       => 'ZK-2024-0002',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 1,
+                'jenis_zakat_id' => 4,
+                'jumlah'         => 500.00,
+                'tarikh_bayar'   => '2024-09-01',
+                'cara_bayar'     => 'online',
+                'no_resit'       => 'ZK-2024-0003',
+                'status'         => 'pending',
+            ],
+            // Pembayar 2 — Siti Nurhaliza (2 pembayaran)
+            [
+                'pembayar_id'    => 2,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-29',
+                'cara_bayar'     => 'tunai',
+                'no_resit'       => 'ZK-2024-0004',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 2,
+                'jenis_zakat_id' => 2,
+                'jumlah'         => 1140.00,
+                'tarikh_bayar'   => '2024-07-10',
+                'cara_bayar'     => 'kad',
+                'no_resit'       => 'ZK-2024-0005',
+                'status'         => 'sah',
+            ],
+            // Pembayar 3 — Mohd Faizal (3 pembayaran)
+            [
+                'pembayar_id'    => 3,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-27',
+                'cara_bayar'     => 'tunai',
+                'no_resit'       => 'ZK-2024-0006',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 3,
+                'jenis_zakat_id' => 2,
+                'jumlah'         => 1950.00,
+                'tarikh_bayar'   => '2024-05-20',
+                'cara_bayar'     => 'fpx',
+                'no_resit'       => 'ZK-2024-0007',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 3,
+                'jenis_zakat_id' => 3,
+                'jumlah'         => 3200.00,
+                'tarikh_bayar'   => '2024-08-15',
+                'cara_bayar'     => 'online',
+                'no_resit'       => 'ZK-2024-0008',
+                'status'         => 'sah',
+            ],
+            // Pembayar 5 — Ismail bin Yusof (3 pembayaran)
+            [
+                'pembayar_id'    => 5,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-30',
+                'cara_bayar'     => 'tunai',
+                'no_resit'       => 'ZK-2024-0009',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 5,
+                'jenis_zakat_id' => 3,
+                'jumlah'         => 4500.00,
+                'tarikh_bayar'   => '2024-06-01',
+                'cara_bayar'     => 'fpx',
+                'no_resit'       => 'ZK-2024-0010',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 5,
+                'jenis_zakat_id' => 2,
+                'jumlah'         => 1560.00,
+                'tarikh_bayar'   => '2024-10-05',
+                'cara_bayar'     => 'online',
+                'no_resit'       => 'ZK-2024-0011',
+                'status'         => 'batal',
+            ],
+            // Pembayar 6 — Fatimah binti Omar (2 pembayaran)
+            [
+                'pembayar_id'    => 6,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-28',
+                'cara_bayar'     => 'kad',
+                'no_resit'       => 'ZK-2024-0012',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 6,
+                'jenis_zakat_id' => 2,
+                'jumlah'         => 1260.00,
+                'tarikh_bayar'   => '2024-08-20',
+                'cara_bayar'     => 'fpx',
+                'no_resit'       => 'ZK-2024-0013',
+                'status'         => 'pending',
+            ],
+            // Pembayar 8 — Nurul Huda (3 pembayaran)
+            [
+                'pembayar_id'    => 8,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-26',
+                'cara_bayar'     => 'tunai',
+                'no_resit'       => 'ZK-2024-0014',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 8,
+                'jenis_zakat_id' => 2,
+                'jumlah'         => 1740.00,
+                'tarikh_bayar'   => '2024-04-15',
+                'cara_bayar'     => 'fpx',
+                'no_resit'       => 'ZK-2024-0015',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 8,
+                'jenis_zakat_id' => 4,
+                'jumlah'         => 800.00,
+                'tarikh_bayar'   => '2024-07-01',
+                'cara_bayar'     => 'online',
+                'no_resit'       => 'ZK-2024-0016',
+                'status'         => 'sah',
+            ],
+            // Pembayar 9 — Hassan bin Daud (1 pembayaran)
+            [
+                'pembayar_id'    => 9,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-31',
+                'cara_bayar'     => 'tunai',
+                'no_resit'       => 'ZK-2024-0017',
+                'status'         => 'sah',
+            ],
+            // Pembayar 10 — Aminah binti Sulaiman (3 pembayaran)
+            [
+                'pembayar_id'    => 10,
+                'jenis_zakat_id' => 1,
+                'jumlah'         => 7.00,
+                'tarikh_bayar'   => '2024-03-25',
+                'cara_bayar'     => 'tunai',
+                'no_resit'       => 'ZK-2024-0018',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 10,
+                'jenis_zakat_id' => 2,
+                'jumlah'         => 2160.00,
+                'tarikh_bayar'   => '2024-05-10',
+                'cara_bayar'     => 'fpx',
+                'no_resit'       => 'ZK-2024-0019',
+                'status'         => 'sah',
+            ],
+            [
+                'pembayar_id'    => 10,
+                'jenis_zakat_id' => 5,
+                'jumlah'         => 1200.00,
+                'tarikh_bayar'   => '2024-09-15',
+                'cara_bayar'     => 'online',
+                'no_resit'       => 'ZK-2024-0020',
+                'status'         => 'pending',
+            ],
+        ];
+
+        foreach ($pembayarans as $pembayaran) {
+            Pembayaran::create($pembayaran);
+        }
+    }
+}
+```
+
+**Data contoh merangkumi:**
+- 8 daripada 10 pembayar mempunyai pembayaran (Pembayar 4 dan 7 tiada — berguna untuk ujian `doesntHave`).
+- Campuran status: `sah` (majoriti), `pending` (3 rekod), `batal` (1 rekod).
+- Pelbagai cara bayar: `tunai`, `kad`, `fpx`, `online`.
+- 5 jenis zakat berbeza digunakan dalam pembayaran.
+
+#### 5d. DatabaseSeeder
 
 **Fail:** `database/seeders/DatabaseSeeder.php`
 
@@ -561,29 +1461,189 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PembayarSeeder::class,
+            JenisZakatSeeder::class,
+            PembayaranSeeder::class,
         ]);
     }
 }
 ```
 
-**Penerangan:**
-
-- `DatabaseSeeder` adalah seeder utama yang dijalankan apabila kita laksanakan `php artisan db:seed`.
-- `$this->call([...])` membolehkan kita mendaftarkan pelbagai seeder dalam satu senarai. Pada masa ini, hanya `PembayarSeeder` didaftarkan. Pada Hari 3, kita akan menambah seeder untuk `JenisZakat` dan `Pembayaran`.
+> **Susunan penting:** `PembayarSeeder` dan `JenisZakatSeeder` mesti dijalankan **sebelum** `PembayaranSeeder` kerana jadual `pembayarans` merujuk kepada kedua-dua jadual tersebut melalui kunci asing (`foreignId`). Jika susunan terbalik, seeder akan gagal dengan ralat integriti kunci asing.
 
 ---
 
-## Langkah 4: Cipta Middleware LogAkses
+## Bahagian B: Pengawal & Penghalaan
 
-Middleware adalah lapisan penapisan yang memproses permintaan HTTP sebelum atau selepas ia sampai ke pengawal. Middleware `LogAkses` akan merekod setiap permintaan HTTP yang masuk ke dalam fail log khusus.
+### Langkah 6: Cipta Pengawal PembayarController
 
-### Arahan Artisan
+Pengawal sumber (resource controller) menyediakan 7 kaedah standard untuk operasi CRUD.
+
+#### Arahan Artisan
+
+```bash
+php artisan make:controller PembayarController --resource
+```
+
+Bendera `--resource` mencipta 7 kaedah automatik: `index`, `create`, `store`, `show`, `edit`, `update`, `destroy`.
+
+#### Fail Pengawal
+
+**Fail:** `app/Http/Controllers/PembayarController.php`
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Pembayar;
+use Illuminate\Http\Request;
+
+class PembayarController extends Controller
+{
+    /**
+     * Papar senarai pembayar zakat.
+     */
+    public function index(Request $request)
+    {
+        $carian = $request->query('carian');
+
+        $pembayars = Pembayar::query()
+            ->when($carian, fn($query) => $query->carian($carian))
+            ->orderBy('nama')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('pembayar.index', compact('pembayars', 'carian'));
+    }
+
+    /**
+     * Papar borang daftar pembayar baru.
+     */
+    public function create()
+    {
+        return view('pembayar.create');
+    }
+
+    /**
+     * Simpan pembayar baru ke pangkalan data.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'nama'                => 'required|string|max:255',
+            'no_ic'               => 'required|string|size:12|unique:pembayars,no_ic',
+            'alamat'              => 'required|string',
+            'no_tel'              => 'required|string|max:15',
+            'email'               => 'nullable|email|max:255',
+            'pekerjaan'           => 'nullable|string|max:255',
+            'pendapatan_bulanan'  => 'nullable|numeric|min:0',
+        ], [
+            'nama.required'       => 'Sila masukkan nama penuh.',
+            'no_ic.required'      => 'Sila masukkan No. Kad Pengenalan.',
+            'no_ic.size'          => 'No. KP mestilah 12 digit.',
+            'no_ic.unique'        => 'No. KP ini telah didaftarkan.',
+            'alamat.required'     => 'Sila masukkan alamat.',
+            'no_tel.required'     => 'Sila masukkan nombor telefon.',
+            'email.email'         => 'Format e-mel tidak sah.',
+            'pendapatan_bulanan.numeric' => 'Pendapatan mestilah dalam bentuk angka.',
+            'pendapatan_bulanan.min'     => 'Pendapatan tidak boleh negatif.',
+        ]);
+
+        Pembayar::create($validated);
+
+        return redirect()
+            ->route('pembayar.index')
+            ->with('success', 'Pembayar berjaya didaftarkan.');
+    }
+
+    /**
+     * Papar maklumat lengkap pembayar.
+     */
+    public function show(Pembayar $pembayar)
+    {
+        // Eager load pembayaran beserta jenis zakat — elak masalah N+1
+        $pembayar->load('pembayarans.jenisZakat');
+
+        return view('pembayar.show', compact('pembayar'));
+    }
+
+    /**
+     * Papar borang kemaskini pembayar.
+     */
+    public function edit(Pembayar $pembayar)
+    {
+        return view('pembayar.edit', compact('pembayar'));
+    }
+
+    /**
+     * Kemaskini maklumat pembayar.
+     */
+    public function update(Request $request, Pembayar $pembayar)
+    {
+        $validated = $request->validate([
+            'nama'                => 'required|string|max:255',
+            'no_ic'               => 'required|string|size:12|unique:pembayars,no_ic,' . $pembayar->id,
+            'alamat'              => 'required|string',
+            'no_tel'              => 'required|string|max:15',
+            'email'               => 'nullable|email|max:255',
+            'pekerjaan'           => 'nullable|string|max:255',
+            'pendapatan_bulanan'  => 'nullable|numeric|min:0',
+        ], [
+            'nama.required'       => 'Sila masukkan nama penuh.',
+            'no_ic.required'      => 'Sila masukkan No. Kad Pengenalan.',
+            'no_ic.size'          => 'No. KP mestilah 12 digit.',
+            'no_ic.unique'        => 'No. KP ini telah didaftarkan.',
+            'alamat.required'     => 'Sila masukkan alamat.',
+            'no_tel.required'     => 'Sila masukkan nombor telefon.',
+            'email.email'         => 'Format e-mel tidak sah.',
+            'pendapatan_bulanan.numeric' => 'Pendapatan mestilah dalam bentuk angka.',
+            'pendapatan_bulanan.min'     => 'Pendapatan tidak boleh negatif.',
+        ]);
+
+        $pembayar->update($validated);
+
+        return redirect()
+            ->route('pembayar.show', $pembayar)
+            ->with('success', 'Maklumat pembayar berjaya dikemaskini.');
+    }
+
+    /**
+     * Padam pembayar dari pangkalan data.
+     */
+    public function destroy(Pembayar $pembayar)
+    {
+        $pembayar->delete();
+
+        return redirect()
+            ->route('pembayar.index')
+            ->with('success', 'Pembayar berjaya dipadamkan.');
+    }
+}
+```
+
+#### 7 Kaedah Resource Controller
+
+| Kaedah | HTTP | URI | Nama Laluan | Fungsi |
+|--------|------|-----|-------------|--------|
+| `index` | GET | `/pembayar` | `pembayar.index` | Papar senarai pembayar |
+| `create` | GET | `/pembayar/create` | `pembayar.create` | Papar borang daftar baru |
+| `store` | POST | `/pembayar` | `pembayar.store` | Simpan pembayar baru |
+| `show` | GET | `/pembayar/{pembayar}` | `pembayar.show` | Papar maklumat lengkap |
+| `edit` | GET | `/pembayar/{pembayar}/edit` | `pembayar.edit` | Papar borang kemaskini |
+| `update` | PUT/PATCH | `/pembayar/{pembayar}` | `pembayar.update` | Kemaskini maklumat |
+| `destroy` | DELETE | `/pembayar/{pembayar}` | `pembayar.destroy` | Padam pembayar |
+
+**Perhatikan** kaedah `show()` — kita gunakan `$pembayar->load('pembayarans.jenisZakat')` untuk eager load hubungan sebelum hantar ke paparan. Ini memastikan tiada masalah N+1 query apabila kita loop senarai pembayaran dalam Blade.
+
+---
+
+### Langkah 7: Cipta Middleware
+
+#### 7a. LogAkses — Log Setiap Permintaan
 
 ```bash
 php artisan make:middleware LogAkses
 ```
-
-### Fail Middleware
 
 **Fail:** `app/Http/Middleware/LogAkses.php`
 
@@ -617,42 +1677,15 @@ class LogAkses
 ```
 
 **Penerangan:**
+- Middleware ini merekodkan setiap permintaan HTTP ke saluran log `akses`.
+- Maklumat yang direkodkan: kaedah HTTP (GET/POST/dll.), URL penuh, alamat IP, dan masa.
+- `$next($request)` — Teruskan permintaan ke middleware/pengawal seterusnya.
 
-- `Log::channel('akses')` -- Menulis ke saluran log berasingan bernama `akses` (akan dikonfigurasi di bawah). Ini memisahkan log akses daripada log aplikasi utama.
-- `$request->method()` -- Mengembalikan kaedah HTTP (GET, POST, PUT, DELETE, dll.).
-- `$request->fullUrl()` -- Mengembalikan URL penuh termasuk query string.
-- `$request->ip()` -- Mengembalikan alamat IP pelanggan.
-- `now()->format('Y-m-d H:i:s')` -- Mengembalikan cap masa semasa dalam format yang mudah dibaca.
-- `$next($request)` -- Meneruskan permintaan ke lapisan seterusnya (middleware lain atau pengawal). Ini adalah corak "before middleware" di mana log ditulis sebelum permintaan diproses.
-
-### Konfigurasi Saluran Log
-
-Buka `config/logging.php` dan tambah saluran `akses` di dalam tatasusunan `channels`:
-
-```php
-'akses' => [
-    'driver' => 'single',
-    'path' => storage_path('logs/akses.log'),
-    'level' => 'info',
-    'replace_placeholders' => true,
-],
-```
-
-Saluran ini menggunakan pemacu `single` yang menulis ke satu fail sahaja: `storage/logs/akses.log`. Fail ini akan dijana secara automatik apabila log pertama ditulis.
-
----
-
-## Langkah 5: Cipta Middleware SemakWaktuPejabat
-
-Middleware ini akan menyekat akses ke bahagian tertentu jika permintaan dibuat di luar waktu pejabat. Ini adalah contoh "middleware pengesahan syarat" -- jika syarat tidak dipenuhi, pengguna akan disekat.
-
-### Arahan Artisan
+#### 7b. SemakWaktuPejabat — Hadkan Akses Mengikut Waktu
 
 ```bash
 php artisan make:middleware SemakWaktuPejabat
 ```
-
-### Fail Middleware
 
 **Fail:** `app/Http/Middleware/SemakWaktuPejabat.php`
 
@@ -692,22 +1725,16 @@ class SemakWaktuPejabat
 ```
 
 **Penerangan:**
-
-- `now()->dayOfWeek` -- Mengembalikan hari dalam minggu sebagai nombor (0 = Ahad, 1 = Isnin, ..., 5 = Jumaat, 6 = Sabtu). Fungsi `now()` menggunakan Carbon (pustaka tarikh/masa Laravel).
-- `now()->hour` -- Mengembalikan jam semasa dalam format 24 jam (0-23).
-- **Logik semakan:**
-  - `$hariBekerja` -- `true` jika hari semasa adalah Isnin (1) hingga Jumaat (5).
-  - `$waktuPejabat` -- `true` jika jam semasa antara 8:00 (8) hingga 4:59 petang (< 17).
-  - Jika salah satu syarat tidak dipenuhi, halaman ralat `errors.luar-waktu` akan dipaparkan dengan kod status HTTP 403 (Forbidden).
-- `response()->view('errors.luar-waktu', [], 403)` -- Mengembalikan paparan ralat tanpa meneruskan permintaan ke pengawal. Kod 403 bermaksud "Akses Ditolak".
-
-> **Nota untuk bengkel:** Middleware ini tidak digunakan secara aktif dalam laluan contoh hari ini (untuk memudahkan pengujian). Ia didaftarkan sebagai alias `'waktu.pejabat'` supaya boleh digunakan apabila diperlukan. Untuk mengujinya, tambah middleware ke mana-mana laluan: `->middleware('waktu.pejabat')`.
+- Middleware ini menyekat akses di luar waktu pejabat (Isnin-Jumaat, 8am-5pm).
+- `now()->dayOfWeek` — Hari dalam minggu (0=Ahad, 1=Isnin, ..., 6=Sabtu).
+- `now()->hour` — Jam semasa (0-23).
+- Jika di luar waktu, paparan ralat `errors.luar-waktu` dipaparkan dengan kod HTTP 403 (Forbidden).
 
 ---
 
-## Langkah 6: Daftar Middleware dalam bootstrap/app.php
+### Langkah 8: Daftar Middleware
 
-Dalam Laravel 11+, middleware didaftarkan di dalam `bootstrap/app.php` menggunakan alias. Ini berbeza daripada versi Laravel sebelumnya yang menggunakan `app/Http/Kernel.php`. Alias membolehkan kita merujuk middleware dengan nama pendek dalam definisi laluan.
+Dalam Laravel 11+, middleware didaftarkan dalam `bootstrap/app.php`.
 
 **Fail:** `bootstrap/app.php`
 
@@ -736,27 +1763,19 @@ return Application::configure(basePath: dirname(__DIR__))
 ```
 
 **Penerangan:**
-
-- **`->withRouting(...)`** -- Mengkonfigurasi fail laluan untuk web, console, dan health check.
-- **`->withMiddleware(...)`** -- Bahagian pendaftaran middleware. Kita mendaftarkan dua alias:
-  - `'waktu.pejabat'` -- Alias untuk `SemakWaktuPejabat`. Digunakan sebagai `->middleware('waktu.pejabat')` dalam laluan.
-  - `'log.akses'` -- Alias untuk `LogAkses`. Digunakan sebagai `->middleware('log.akses')` dalam laluan.
-- **`->withExceptions(...)`** -- Tempat untuk konfigurasi pengendalian pengecualian (exception handling). Dibiarkan kosong buat masa ini.
-- Selepas pendaftaran ini, kita boleh merujuk middleware dengan nama pendek dan bukannya nama kelas penuh (contoh: `'log.akses'` berbanding `\App\Http\Middleware\LogAkses::class`).
+- `$middleware->alias([...])` — Daftar alias untuk middleware. Alias ini boleh digunakan dalam laluan.
+- `'waktu.pejabat'` — Alias untuk middleware `SemakWaktuPejabat`. Guna dalam laluan: `->middleware('waktu.pejabat')`.
+- `'log.akses'` — Alias untuk middleware `LogAkses`. Guna dalam laluan: `->middleware('log.akses')`.
 
 ---
 
-## Langkah 7: Cipta SemakController
+### Langkah 9: Cipta SemakController & MaklumatController
 
-Pengawal ini memaparkan halaman semakan sistem -- maklumat versi PHP, versi Laravel, status sambungan pangkalan data, dan pelayan web. Halaman ini berguna untuk pengesahan bahawa persekitaran pembangunan berfungsi dengan betul.
-
-### Arahan Artisan
+#### 9a. SemakController — Semakan Sistem
 
 ```bash
 php artisan make:controller SemakController
 ```
-
-### Fail Pengawal
 
 **Fail:** `app/Http/Controllers/SemakController.php`
 
@@ -806,30 +1825,11 @@ class SemakController extends Controller
 }
 ```
 
-**Penerangan:**
-
-- **`PHP_VERSION`** -- Pemalar PHP terbina dalam yang mengembalikan versi PHP yang sedang berjalan (contoh: `8.3.0`).
-- **`app()->version()`** -- Mengembalikan versi Laravel (contoh: `11.0.0`).
-- **`$_SERVER['SERVER_SOFTWARE']`** -- Mengembalikan maklumat pelayan web. Pada Laragon, ini biasanya `Apache/2.4.x`. Jika menggunakan `php artisan serve`, ia akan menjadi `PHP Built-in Server`.
-- **`semakPangkalanData()`** -- Kaedah persendirian (private) yang cuba menyambung ke pangkalan data:
-  - `DB::connection()->getPdo()` -- Cuba mendapatkan objek PDO daripada sambungan pangkalan data semasa. Jika berjaya, pangkalan data bersambung.
-  - `config('database.default')` -- Mendapatkan nama pemacu pangkalan data lalai daripada konfigurasi (biasanya `mysql`).
-  - `config('database.connections.mysql.database')` -- Mendapatkan nama pangkalan data (contoh: `zakat_kedah`).
-  - Jika sambungan gagal, pengecualian ditangkap dan mesej ralat dikembalikan.
-
----
-
-## Langkah 8: Cipta MaklumatController
-
-Pengawal ini memaparkan senarai semua laluan yang didaftarkan dalam aplikasi. Ini berguna untuk rujukan semasa pembangunan -- anda boleh melihat semua URL yang tersedia, kaedah HTTP, dan pengawal yang bertanggungjawab.
-
-### Arahan Artisan
+#### 9b. MaklumatController — Senarai Laluan
 
 ```bash
 php artisan make:controller MaklumatController
 ```
-
-### Fail Pengawal
 
 **Fail:** `app/Http/Controllers/MaklumatController.php`
 
@@ -861,20 +1861,9 @@ class MaklumatController extends Controller
 }
 ```
 
-**Penerangan:**
-
-- `Route::getRoutes()` -- Mengembalikan koleksi semua laluan yang didaftarkan dalam aplikasi. Ini termasuk laluan web, laluan API, dan laluan yang dijana oleh pakej.
-- `collect(...)` -- Membungkus hasil dalam koleksi Laravel supaya kita boleh menggunakan kaedah `map()`.
-- `$route->getName()` -- Nama laluan (contoh: `pembayar.index`). Jika tiada nama, `null` dikembalikan dan digantikan dengan `'-'`.
-- `$route->methods()` -- Mengembalikan tatasusunan kaedah HTTP (contoh: `['GET', 'HEAD']`).
-- `$route->uri()` -- URI laluan (contoh: `pembayar/{pembayar}`).
-- `$route->getActionName()` -- Nama pengawal dan kaedah penuh (contoh: `App\Http\Controllers\PembayarController@index`).
-
 ---
 
-## Langkah 9: Tetapkan Laluan
-
-Fail laluan menentukan semua URL yang boleh diakses dalam aplikasi. Setiap laluan memetakan URL kepada pengawal atau closure yang akan memproses permintaan.
+### Langkah 10: Tetapkan Laluan
 
 **Fail:** `routes/web.php`
 
@@ -886,13 +1875,13 @@ use App\Http\Controllers\PembayarController;
 use App\Http\Controllers\SemakController;
 use Illuminate\Support\Facades\Route;
 
-// Halaman utama -- terus ke senarai pembayar
+// Halaman utama — terus ke senarai pembayar
 Route::get('/', fn() => redirect()->route('pembayar.index'));
 
 // Semakan sistem
 Route::get('/semak', [SemakController::class, 'index'])->name('semak');
 
-// Maklumat laluan -- papar semua laluan berdaftar
+// Maklumat laluan — papar semua laluan berdaftar
 Route::get('/maklumat/laluan', [MaklumatController::class, 'laluan'])->name('maklumat.laluan');
 
 // Kumpulan laluan dengan middleware log akses
@@ -906,51 +1895,26 @@ Route::prefix('admin')->name('admin.')->middleware(['log.akses'])->group(functio
 });
 ```
 
-**Penerangan baris demi baris:**
+**Konsep penting dalam penghalaan:**
 
-- **Baris 9:** `Route::get('/', fn() => redirect()->route('pembayar.index'))` -- Halaman utama (`/`) mengalihkan pengguna terus ke senarai pembayar. `fn()` adalah arrow function PHP 7.4+.
-
-- **Baris 12:** `Route::get('/semak', ...)` -- Laluan `/semak` dipetakan ke `SemakController@index`. `->name('semak')` memberi nama supaya boleh dirujuk dengan `route('semak')` dalam Blade.
-
-- **Baris 15:** `Route::get('/maklumat/laluan', ...)` -- Laluan `/maklumat/laluan` dipetakan ke `MaklumatController@laluan`.
-
-- **Baris 18-20:** `Route::middleware(['log.akses'])->group(function () {...})` -- **Kumpulan laluan dengan middleware.** Semua laluan dalam kumpulan ini akan melalui middleware `LogAkses`. `Route::resource('pembayar', PembayarController::class)` menjana 7 laluan CRUD secara automatik.
-
-- **Baris 23-25:** `Route::prefix('admin')->name('admin.')->middleware(['log.akses'])->group(...)` -- **Kumpulan laluan dengan prefix dan nama.** Ciri-ciri:
-  - `prefix('admin')` -- Menambah awalan `/admin` pada semua URI dalam kumpulan. Jadi `'/dashboard'` menjadi `/admin/dashboard`.
-  - `name('admin.')` -- Menambah awalan `admin.` pada semua nama laluan. Jadi `'dashboard'` menjadi `admin.dashboard`.
-  - `middleware(['log.akses'])` -- Menambah middleware log akses pada semua laluan dalam kumpulan.
-  - Dashboard pentadbir menggunakan closure `fn() => view('admin.dashboard')` kerana ia hanya memaparkan paparan tanpa logik tambahan.
-
-### Jadual Laluan Lengkap
-
-| Kaedah | URI | Nama | Pengawal | Middleware |
-|--------|-----|------|----------|------------|
-| GET | `/` | - | Alih ke pembayar.index | - |
-| GET | `/pembayar` | pembayar.index | PembayarController@index | log.akses |
-| GET | `/pembayar/create` | pembayar.create | PembayarController@create | log.akses |
-| POST | `/pembayar` | pembayar.store | PembayarController@store | log.akses |
-| GET | `/pembayar/{pembayar}` | pembayar.show | PembayarController@show | log.akses |
-| GET | `/pembayar/{pembayar}/edit` | pembayar.edit | PembayarController@edit | log.akses |
-| PUT/PATCH | `/pembayar/{pembayar}` | pembayar.update | PembayarController@update | log.akses |
-| DELETE | `/pembayar/{pembayar}` | pembayar.destroy | PembayarController@destroy | log.akses |
-| GET | `/semak` | semak | SemakController@index | - |
-| GET | `/maklumat/laluan` | maklumat.laluan | MaklumatController@laluan | - |
-| GET | `/admin/dashboard` | admin.dashboard | Closure (view) | log.akses |
+| Konsep | Contoh | Penerangan |
+|--------|--------|-----------|
+| `Route::resource` | `Route::resource('pembayar', PembayarController::class)` | Cipta 7 laluan CRUD secara automatik untuk resource controller |
+| `Route::get` | `Route::get('/semak', ...)` | Laluan tunggal untuk kaedah HTTP GET |
+| `->name()` | `->name('semak')` | Namakan laluan — guna `route('semak')` dalam Blade untuk jana URL |
+| `Route::middleware` | `Route::middleware(['log.akses'])` | Lampirkan middleware ke kumpulan laluan |
+| `Route::prefix` | `Route::prefix('admin')` | Tambah prefix URI (cth: `/admin/dashboard`) |
+| `->name('admin.')` | `->name('admin.')` | Tambah prefix nama laluan (cth: `admin.dashboard`) |
+| `->group()` | `->group(function () { ... })` | Kumpulkan laluan yang berkongsi tetapan |
+| `fn() =>` | `fn() => redirect()->route(...)` | Arrow function — laluan ringkas tanpa pengawal |
 
 ---
 
-## Langkah 10: Cipta Layout Blade
+## Bahagian C: Paparan (Blade)
 
-Susun atur (layout) adalah kerangka HTML yang dikongsi oleh semua halaman. Ia mengandungi elemen yang sama di setiap halaman: bar navigasi, mesej kilat, dan kaki halaman. Setiap halaman hanya perlu mengisi bahagian `@yield('content')`.
+### Langkah 11: Cipta Layout
 
-### Cipta Direktori
-
-```bash
-mkdir -p resources/views/layouts
-```
-
-### Fail Layout
+Layout adalah rangka utama halaman yang dikongsi oleh semua paparan.
 
 **Fail:** `resources/views/layouts/app.blade.php`
 
@@ -1022,40 +1986,22 @@ mkdir -p resources/views/layouts
 </html>
 ```
 
-**Penerangan terperinci:**
+**Konsep Blade dalam layout:**
 
-- **`lang="ms"`** -- Menetapkan bahasa halaman sebagai Bahasa Melayu.
-- **`{{ csrf_token() }}`** -- Token CSRF diletakkan dalam meta tag supaya boleh digunakan oleh permintaan AJAX. Setiap borang POST juga memerlukan `@csrf`.
-- **`@yield('title', 'Sistem Zakat Kedah')`** -- Arahan Blade yang membenarkan halaman anak menentukan tajuk. Jika tidak ditetapkan, nilai lalai `'Sistem Zakat Kedah'` digunakan. Halaman anak menggunakan `@section('title', 'Tajuk Saya')` untuk menetapkan tajuk.
-- **Tailwind CSS CDN** -- `<script src="https://cdn.tailwindcss.com"></script>` memuatkan Tailwind CSS untuk penggayaan. Untuk produksi, gunakan PostCSS/Vite.
-- **Bar navigasi:**
-  - Latar belakang hijau zamrud (`bg-emerald-700`) dengan tiga pautan: Pembayar, Maklumat Laluan, dan Semak Sistem.
-  - `request()->routeIs('pembayar.*')` -- Menyemak sama ada laluan semasa sepadan dengan corak. Jika ya, pautan diberikan latar belakang gelap (`bg-emerald-900 text-white`) untuk menunjukkan halaman aktif. Jika tidak, pautan mempunyai warna cerah dengan kesan hover.
-- **Mesej kilat:**
-  - `session('success')` -- Memaparkan mesej kejayaan selepas operasi CRUD (contoh: "Pembayar berjaya didaftarkan."). Ditunjukkan dalam kotak hijau.
-  - `session('error')` -- Memaparkan mesej ralat. Ditunjukkan dalam kotak merah.
-  - Mesej ini hilang selepas satu kali muat semula halaman (flash session).
-- **`@yield('content')`** -- Tempat di mana kandungan setiap halaman anak akan dimasukkan. Halaman anak menggunakan `@section('content') ... @endsection`.
-- **Kaki halaman** -- Ditunjukkan di bahagian bawah setiap halaman.
-- **`flex flex-col` dan `flex-1`** -- Menggunakan Flexbox untuk memastikan kaki halaman sentiasa di bahagian bawah, walaupun kandungan halaman pendek.
+| Konsep | Contoh | Penerangan |
+|--------|--------|-----------|
+| `@yield('title', 'default')` | `@yield('title', 'Sistem Zakat Kedah')` | Titik sisipan — halaman anak boleh isi kandungan. Jika tidak diisi, guna nilai lalai. |
+| `@yield('content')` | `@yield('content')` | Titik sisipan utama untuk kandungan halaman. |
+| `{{ }}` | `{{ session('success') }}` | Output dengan escape HTML — selamat daripada serangan XSS. |
+| `@if ... @endif` | `@if (session('success')) ... @endif` | Blok syarat — papar hanya jika syarat dipenuhi. |
+| `request()->routeIs()` | `request()->routeIs('pembayar.*')` | Semak laluan semasa — guna untuk highlight pautan navigasi aktif. |
+| `{{ csrf_token() }}` | `<meta name="csrf-token" ...>` | Token CSRF untuk keselamatan — diperlukan untuk permintaan POST/PUT/DELETE. |
 
----
+### Langkah 12: Cipta Paparan CRUD Pembayar
 
-## Langkah 11: Cipta Paparan CRUD Pembayar
+Paparan CRUD untuk model Pembayar menggunakan layout yang telah kita cipta.
 
-Cipta empat paparan Blade untuk operasi CRUD Pembayar: senarai (index), daftar baru (create), butiran (show), dan kemaskini (edit).
-
-### Cipta Direktori
-
-```bash
-mkdir -p resources/views/pembayar
-```
-
-### 11a. Senarai Pembayar (index.blade.php)
-
-Paparan ini memaparkan senarai pembayar dalam bentuk jadual dengan fungsi carian dan paginasi.
-
-**Fail:** `resources/views/pembayar/index.blade.php`
+#### 12a. Senarai Pembayar — `resources/views/pembayar/index.blade.php`
 
 ```blade
 @extends('layouts.app')
@@ -1160,37 +2106,7 @@ Paparan ini memaparkan senarai pembayar dalam bentuk jadual dengan fungsi carian
 @endsection
 ```
 
-**Penerangan terperinci:**
-
-- **Borang carian:**
-  - Menghantar permintaan GET ke `pembayar.index` dengan parameter query `?carian=...`.
-  - `value="{{ $carian ?? '' }}"` -- Memaparkan teks carian sebelumnya dalam kotak input.
-  - Butang "Padam Carian" hanya muncul jika ada carian aktif (`@if ($carian)`).
-
-- **Jadual:**
-  - `@forelse ... @empty ... @endforelse` -- Gabungan `@foreach` dan `@if` kosong. Jika tiada rekod, bahagian `@empty` dipaparkan.
-  - `$pembayars->firstItem() + $index` -- Mengira nombor baris yang betul merentas halaman paginasi.
-  - `$pembayar->ic_format` -- Menggunakan aksesor `getIcFormatAttribute()` untuk memaparkan no IC berformat.
-  - `$pembayar->email ?? '-'` -- Operator null coalescing; papar `'-'` jika e-mel tiada.
-  - `$pembayar->pendapatan_format` -- Menggunakan aksesor `getPendapatanFormatAttribute()` untuk format RM.
-
-- **Pautan tindakan:**
-  - **Lihat** -- Pautan ke halaman butiran (`pembayar.show`).
-  - **Kemaskini** -- Pautan ke halaman kemaskini (`pembayar.edit`).
-  - **Padam** -- Borang POST dengan `@method('DELETE')` kerana HTML tidak menyokong kaedah DELETE secara asli. `@csrf` menambah token CSRF untuk perlindungan. `onsubmit="return confirm(...)"` memaparkan dialog pengesahan sebelum pemadaman.
-
-- **Paginasi:**
-  - `$pembayars->hasPages()` -- Hanya papar pautan paginasi jika ada lebih daripada satu halaman.
-  - `$pembayars->links()` -- Menjana pautan navigasi halaman (Sebelumnya, 1, 2, 3, Seterusnya).
-  - Baris kiraan menunjukkan "Menunjukkan 1 hingga 10 daripada 25 rekod".
-
----
-
-### 11b. Daftar Pembayar Baru (create.blade.php)
-
-Paparan ini memaparkan borang untuk mendaftarkan pembayar baru.
-
-**Fail:** `resources/views/pembayar/create.blade.php`
+#### 12b. Daftar Baru — `resources/views/pembayar/create.blade.php`
 
 ```blade
 @extends('layouts.app')
@@ -1303,31 +2219,9 @@ Paparan ini memaparkan borang untuk mendaftarkan pembayar baru.
 @endsection
 ```
 
-**Penerangan terperinci:**
+#### 12c. Maklumat Pembayar (dengan Senarai Pembayaran) — `resources/views/pembayar/show.blade.php`
 
-- **Breadcrumb** -- Navigasi serbuk roti yang menunjukkan kedudukan halaman semasa: Senarai Pembayar > Daftar Baru.
-
-- **`@csrf`** -- Arahan Blade yang menjana medan tersembunyi (hidden field) berisi token CSRF. Wajib untuk semua borang POST/PUT/DELETE bagi melindungi daripada serangan Cross-Site Request Forgery.
-
-- **`old('nama')`** -- Fungsi helper Laravel yang mengembalikan nilai input sebelumnya jika pengesahan gagal. Ini membolehkan pengguna tidak perlu mengisi semula borang dari awal.
-
-- **`$errors->has('nama')`** -- Menyemak sama ada terdapat ralat pengesahan untuk medan tertentu. Jika ada, sempadan input bertukar merah (`border-red-500`). Jika tiada, ia kekal kelabu (`border-gray-300`).
-
-- **`@error('nama') ... @enderror`** -- Arahan Blade yang memaparkan mesej ralat pengesahan. Pembolehubah `$message` mengandungi mesej ralat yang ditetapkan dalam pengawal.
-
-- **`<span class="text-red-500">*</span>`** -- Tanda bintang merah menunjukkan medan wajib diisi.
-
-- **Grid responsif** -- `grid grid-cols-1 md:grid-cols-2` memaparkan satu lajur pada skrin kecil dan dua lajur pada skrin sederhana ke atas. `md:col-span-2` memaksa medan alamat mengambil lebar penuh.
-
-- **Input pendapatan** -- `type="number"` dengan `step="0.01"` membenarkan nilai perpuluhan dan `min="0"` menghalang nilai negatif.
-
----
-
-### 11c. Butiran Pembayar (show.blade.php)
-
-Paparan ini memaparkan maklumat lengkap seorang pembayar.
-
-**Fail:** `resources/views/pembayar/show.blade.php`
+Paparan ini telah dikemaskini untuk memaparkan **senarai pembayaran** menggunakan hubungan `hasMany`.
 
 ```blade
 @extends('layouts.app')
@@ -1403,33 +2297,66 @@ Paparan ini memaparkan maklumat lengkap seorang pembayar.
                 <p class="text-sm text-gray-500">Tarikh Dikemaskini</p>
                 <p class="text-lg font-medium text-gray-900">{{ $pembayar->updated_at->format('d/m/Y H:i') }}</p>
             </div>
+            <div>
+                <p class="text-sm text-gray-500">Jumlah Bayaran Sah</p>
+                <p class="text-lg font-medium text-emerald-700">RM {{ number_format($pembayar->jumlah_bayaran, 2) }}</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- Senarai Pembayaran — menggunakan hubungan hasMany --}}
+    <div class="bg-white rounded-lg shadow mt-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800">Senarai Pembayaran</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-emerald-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">No. Resit</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Jenis Zakat</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Jumlah</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Tarikh Bayar</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Cara Bayar</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-emerald-800 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($pembayar->pembayarans as $bayaran)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ $bayaran->no_resit }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ $bayaran->jenisZakat->nama }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">RM {{ number_format($bayaran->jumlah, 2) }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ $bayaran->tarikh_bayar->format('d/m/Y') }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ ucfirst($bayaran->cara_bayar) }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                @php
+                                    $warnaStatus = match($bayaran->status) {
+                                        'sah'     => 'bg-emerald-100 text-emerald-800',
+                                        'pending' => 'bg-amber-100 text-amber-800',
+                                        'batal'   => 'bg-red-100 text-red-800',
+                                    };
+                                @endphp
+                                <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold {{ $warnaStatus }}">
+                                    {{ ucfirst($bayaran->status) }}
+                                </span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                Tiada rekod pembayaran.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 @endsection
 ```
 
-**Penerangan terperinci:**
-
-- **`@section('title', $pembayar->nama)`** -- Tajuk halaman ditetapkan kepada nama pembayar supaya tab pelayar menunjukkan nama pembayar.
-
-- **Butang tindakan:**
-  - **Kemaskini** (biru) -- Pautan ke halaman kemaskini.
-  - **Padam** (merah) -- Borang DELETE dengan dialog pengesahan. `@method('DELETE')` menjana medan tersembunyi `_method=DELETE` kerana HTML hanya menyokong GET dan POST.
-  - **Kembali** (kelabu) -- Kembali ke senarai pembayar.
-
-- **Paparan maklumat:**
-  - `$pembayar->ic_format` -- Menggunakan aksesor untuk memaparkan no IC berformat (contoh: `850101-14-5678`).
-  - `$pembayar->pendapatan_format` -- Menggunakan aksesor untuk memaparkan pendapatan berformat (contoh: `RM 4,500.00`).
-  - `$pembayar->email ?? '-'` dan `$pembayar->pekerjaan ?? '-'` -- Papar sengkang jika medan pilihan tiada nilai.
-  - `$pembayar->created_at->format('d/m/Y H:i')` -- Memformat tarikh menggunakan Carbon. `created_at` dan `updated_at` secara automatik ditukar kepada objek Carbon oleh Eloquent.
-
----
-
-### 11d. Kemaskini Pembayar (edit.blade.php)
-
-Paparan ini memaparkan borang kemaskini dengan data sedia ada diisi terlebih dahulu.
-
-**Fail:** `resources/views/pembayar/edit.blade.php`
+#### 12d. Kemaskini — `resources/views/pembayar/edit.blade.php`
 
 ```blade
 @extends('layouts.app')
@@ -1543,23 +2470,11 @@ Paparan ini memaparkan borang kemaskini dengan data sedia ada diisi terlebih dah
 @endsection
 ```
 
-**Penerangan terperinci:**
-
-- **`@method('PUT')`** -- Arahan Blade yang menjana medan tersembunyi `_method=PUT`. HTML hanya menyokong GET dan POST, jadi Laravel menggunakan teknik "method spoofing" untuk menyimulasikan kaedah PUT/PATCH/DELETE.
-
-- **`old('nama', $pembayar->nama)`** -- Fungsi `old()` dengan parameter kedua sebagai nilai lalai. Jika pengesahan gagal, nilai yang dimasukkan sebelumnya (`old('nama')`) dipaparkan. Jika bukan pengalihan pengesahan (iaitu muat pertama), nilai sedia ada daripada pangkalan data (`$pembayar->nama`) dipaparkan. Ini adalah perbezaan utama antara borang `create` dan `edit`.
-
-- **Breadcrumb tiga peringkat** -- Senarai Pembayar > Nama Pembayar > Kemaskini. Ini membolehkan pengguna kembali ke halaman butiran atau senarai dengan mudah.
-
-- **Butang Batal** -- Mengalih ke halaman butiran pembayar (`pembayar.show`) dan bukannya senarai, kerana pengguna berkemungkinan besar mahu kembali ke halaman yang sama.
-
 ---
 
-## Langkah 12: Cipta Paparan Semak Sistem
+### Langkah 13: Cipta Paparan Semak, Laluan & Ralat
 
-Paparan ini memaparkan maklumat semakan sistem dalam bentuk kad grid.
-
-**Fail:** `resources/views/semak.blade.php`
+#### 13a. Semakan Sistem — `resources/views/semak.blade.php`
 
 ```blade
 @extends('layouts.app')
@@ -1609,27 +2524,7 @@ Paparan ini memaparkan maklumat semakan sistem dalam bentuk kad grid.
 @endsection
 ```
 
-**Penerangan:**
-
-- Empat kad grid memaparkan: versi PHP, versi Laravel, status pangkalan data, dan pelayan web.
-- Arahan `@if` digunakan untuk memaparkan status sambungan pangkalan data -- hijau jika bersambung, merah jika gagal.
-- Grid dua lajur pada skrin sederhana (`md:grid-cols-2`) dan satu lajur pada skrin kecil (`grid-cols-1`).
-
----
-
-## Langkah 13: Cipta Paparan Senarai Laluan
-
-Paparan ini memaparkan semua laluan berdaftar dalam bentuk jadual dengan warna mengikut kaedah HTTP.
-
-### Cipta Direktori
-
-```bash
-mkdir -p resources/views/maklumat
-```
-
-### Fail Paparan
-
-**Fail:** `resources/views/maklumat/laluan.blade.php`
+#### 13b. Senarai Laluan — `resources/views/maklumat/laluan.blade.php`
 
 ```blade
 @extends('layouts.app')
@@ -1683,90 +2578,7 @@ mkdir -p resources/views/maklumat
 @endsection
 ```
 
-**Penerangan:**
-
-- Jadual menyenaraikan semua laluan dengan nama, kaedah HTTP, URI, dan pengawal.
-- Kaedah HTTP diwarnakan mengikut jenis menggunakan lencana (badge):
-  - **GET** -- Hijau (`bg-emerald-100 text-emerald-800`)
-  - **POST** -- Biru (`bg-blue-100 text-blue-800`)
-  - **PUT/PATCH** -- Kuning emas (`bg-amber-100 text-amber-800`)
-  - **DELETE** -- Merah (`bg-red-100 text-red-800`)
-  - **Lain-lain** -- Kelabu (`bg-gray-100 text-gray-800`)
-- `match()` adalah ungkapan padanan PHP 8.0+ yang lebih ringkas daripada `switch-case`. Ia mengembalikan nilai yang sepadan dengan kunci yang diberikan.
-- `@php ... @endphp` membenarkan kod PHP mentah dalam paparan Blade. Berguna untuk logik paparan kecil.
-- Jumlah laluan dipaparkan di bawah jadual.
-
----
-
-## Langkah 14: Cipta Paparan Admin Dashboard
-
-Dashboard pentadbir memaparkan statistik ringkas. Pada Hari 2 ini, hanya kiraan pembayar yang aktif. Statistik untuk Jenis Zakat dan Pembayaran akan ditambah pada Hari 3.
-
-### Cipta Direktori
-
-```bash
-mkdir -p resources/views/admin
-```
-
-### Fail Paparan
-
-**Fail:** `resources/views/admin/dashboard.blade.php`
-
-```blade
-@extends('layouts.app')
-
-@section('title', 'Dashboard Admin')
-
-@section('content')
-    <h1 class="text-2xl font-bold text-gray-800 mb-6">Dashboard Pentadbir</h1>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {{-- Jumlah Pembayar --}}
-        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-emerald-500">
-            <p class="text-sm text-gray-500 mb-1">Jumlah Pembayar</p>
-            <p class="text-3xl font-bold text-emerald-700">{{ \App\Models\Pembayar::count() }}</p>
-            <p class="text-sm text-gray-400 mt-2">Pembayar zakat berdaftar</p>
-        </div>
-
-        {{-- Placeholder --}}
-        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-            <p class="text-sm text-gray-500 mb-1">Jenis Zakat</p>
-            <p class="text-3xl font-bold text-blue-700">-</p>
-            <p class="text-sm text-gray-400 mt-2">Akan ditambah pada Hari 3</p>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
-            <p class="text-sm text-gray-500 mb-1">Jumlah Pembayaran</p>
-            <p class="text-3xl font-bold text-amber-700">-</p>
-            <p class="text-sm text-gray-400 mt-2">Akan ditambah pada Hari 3</p>
-        </div>
-    </div>
-@endsection
-```
-
-**Penerangan:**
-
-- `\App\Models\Pembayar::count()` -- Mengira jumlah rekod pembayar secara langsung dalam paparan. Dalam aplikasi sebenar, ini biasanya dilakukan dalam pengawal dan dihantar melalui `compact()`.
-- Tiga kad statistik menggunakan `border-l-4` untuk garis sempadan kiri berwarna -- hijau untuk pembayar, biru untuk jenis zakat, dan kuning emas untuk pembayaran.
-- Dua kad terakhir menunjukkan placeholder (`-`) kerana modul tersebut belum dibina. Ini menunjukkan amalan "progressive enhancement" -- membina antara muka dahulu, isi data kemudian.
-
----
-
-## Langkah 15: Cipta Halaman Ralat
-
-Cipta tiga halaman ralat tersuai. Halaman ralat menggunakan susun atur kendiri (tidak `@extends('layouts.app')`) supaya ia boleh dipaparkan walaupun susun atur utama bermasalah.
-
-### Cipta Direktori
-
-```bash
-mkdir -p resources/views/errors
-```
-
-### 15a. Halaman Luar Waktu Pejabat
-
-Halaman ini dipaparkan apabila middleware `SemakWaktuPejabat` menyekat akses kerana permintaan dibuat di luar waktu pejabat.
-
-**Fail:** `resources/views/errors/luar-waktu.blade.php`
+#### 13c. Ralat — Luar Waktu Pejabat — `resources/views/errors/luar-waktu.blade.php`
 
 ```blade
 <!DOCTYPE html>
@@ -1797,310 +2609,290 @@ Halaman ini dipaparkan apabila middleware `SemakWaktuPejabat` menyekat akses ker
 </html>
 ```
 
-**Penerangan:**
+---
 
-- Halaman ini menggunakan susun atur kendiri dengan HTML penuh. Ia tidak bergantung kepada `layouts.app` kerana halaman ralat perlu boleh dipaparkan secara bebas.
-- `&#128336;` adalah entiti HTML untuk ikon jam (mewakili "luar waktu").
-- Mesej memaklumkan pengguna tentang waktu pejabat: Isnin hingga Jumaat, 8:00 pagi hingga 5:00 petang.
-- Latar belakang hijau muda (`bg-emerald-50`) memberikan reka bentuk yang konsisten dengan tema aplikasi.
+## Bahagian D: Jalankan & Uji
 
-### 15b. Halaman 404 (Tidak Dijumpai)
+### Langkah 14: Jalankan Migrasi & Seeder
 
-Halaman ini dipaparkan apabila pengguna mengakses URL yang tidak wujud.
+```bash
+# Jalankan migrasi (cipta jadual)
+php artisan migrate
 
-**Fail:** `resources/views/errors/404.blade.php`
+# Jalankan seeder (masukkan data contoh)
+php artisan db:seed
 
-```blade
-<!DOCTYPE html>
-<html lang="ms">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Halaman Tidak Dijumpai</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center">
-    <div class="max-w-lg mx-auto text-center px-6">
-        <div class="bg-white rounded-2xl shadow-lg p-10">
-            <p class="text-8xl font-bold text-emerald-200 mb-2">404</p>
-            <h1 class="text-2xl font-bold text-gray-800 mb-4">Halaman Tidak Dijumpai</h1>
-            <p class="text-gray-600 mb-6">
-                Maaf, halaman yang anda cari tidak wujud atau telah dialihkan.
-            </p>
-            <a href="/"
-               class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-6 rounded-lg transition">
-                Kembali ke Laman Utama
-            </a>
-        </div>
-        <p class="text-sm text-gray-400 mt-6">Pusat Zakat Negeri Kedah &copy; 2024</p>
-    </div>
-</body>
-</html>
+# Atau jalankan kedua-dua sekali gus
+php artisan migrate --seed
+
+# Jika mahu reset dan jalankan semula (PADAM semua data)
+php artisan migrate:fresh --seed
 ```
 
-**Penerangan:**
+**Hasil yang dijangka:**
 
-- Nombor `404` dipaparkan dalam saiz besar dengan warna pudar (`text-emerald-200`) sebagai elemen reka bentuk.
-- Laravel secara automatik memaparkan fail `resources/views/errors/404.blade.php` apabila pengecualian `NotFoundHttpException` berlaku (URL tidak dijumpai).
-- Pautan "Kembali ke Laman Utama" mengalihkan pengguna ke halaman utama (`/`).
-
-### 15c. Halaman 403 (Akses Ditolak)
-
-Halaman ini dipaparkan apabila pengguna tidak mempunyai kebenaran untuk mengakses halaman.
-
-**Fail:** `resources/views/errors/403.blade.php`
-
-```blade
-<!DOCTYPE html>
-<html lang="ms">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akses Ditolak</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center">
-    <div class="max-w-lg mx-auto text-center px-6">
-        <div class="bg-white rounded-2xl shadow-lg p-10">
-            <p class="text-8xl font-bold text-red-200 mb-2">403</p>
-            <h1 class="text-2xl font-bold text-gray-800 mb-4">Akses Ditolak</h1>
-            <p class="text-gray-600 mb-6">
-                Maaf, anda tidak mempunyai kebenaran untuk mengakses halaman ini.
-            </p>
-            <a href="/"
-               class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-6 rounded-lg transition">
-                Kembali ke Laman Utama
-            </a>
-        </div>
-        <p class="text-sm text-gray-400 mt-6">Pusat Zakat Negeri Kedah &copy; 2024</p>
-    </div>
-</body>
-</html>
 ```
+Migrating: 0001_01_01_000000_create_users_table
+Migrated:  0001_01_01_000000_create_users_table
+Migrating: 0001_01_01_000001_create_cache_table
+Migrated:  0001_01_01_000001_create_cache_table
+Migrating: 0001_01_01_000002_create_jobs_table
+Migrated:  0001_01_01_000002_create_jobs_table
+Migrating: 2024_01_01_000001_create_pembayars_table
+Migrated:  2024_01_01_000001_create_pembayars_table
+Migrating: 2024_01_01_000002_create_jenis_zakats_table
+Migrated:  2024_01_01_000002_create_jenis_zakats_table
+Migrating: 2024_01_01_000003_create_pembayarans_table
+Migrated:  2024_01_01_000003_create_pembayarans_table
 
-**Penerangan:**
-
-- Serupa dengan halaman 404 tetapi dengan nombor `403` dan warna merah pudar (`text-red-200`).
-- Laravel secara automatik memaparkan fail ini apabila pengecualian `AccessDeniedHttpException` berlaku.
-- Digunakan apabila pengguna cuba mengakses sumber yang memerlukan kebenaran yang tidak dimilikinya.
+Seeding: Database\Seeders\PembayarSeeder
+Seeded:  Database\Seeders\PembayarSeeder (10 rekod)
+Seeding: Database\Seeders\JenisZakatSeeder
+Seeded:  Database\Seeders\JenisZakatSeeder (5 rekod)
+Seeding: Database\Seeders\PembayaranSeeder
+Seeded:  Database\Seeders\PembayaranSeeder (20 rekod)
+```
 
 ---
 
-## Langkah 16: Jalankan & Uji
+### Langkah 15: Uji Hubungan dalam Tinker
 
-Sekarang kita akan menjalankan migrasi, memasukkan data contoh, dan menguji semua ciri yang telah dibina.
-
-### 16a. Jalankan Migrasi
-
-```bash
-php artisan migrate
-```
-
-Arahan ini akan mencipta semua jadual dalam pangkalan data berdasarkan fail migrasi. Anda sepatutnya melihat output seperti:
-
-```
-INFO  Running migrations.
-
-2024_01_01_000001_create_pembayars_table ........... DONE
-```
-
-### 16b. Masukkan Data Contoh
-
-```bash
-php artisan db:seed
-```
-
-Arahan ini akan menjalankan `DatabaseSeeder` yang seterusnya memanggil `PembayarSeeder` untuk memasukkan 10 rekod pembayar contoh.
-
-> **Nota:** Jika anda perlu mengulang migrasi dan seeder dari awal, gunakan:
-> ```bash
-> php artisan migrate:fresh --seed
-> ```
-> `migrate:fresh` akan memadam semua jadual dan mencipta semula, kemudian `--seed` menjalankan seeder.
-
-### 16c. Mulakan Pelayan Pembangunan
-
-```bash
-php artisan serve
-```
-
-Pelayan akan bermula di `http://localhost:8000`. Atau jika menggunakan Laragon, akses melalui `http://sistem-zakat.test`.
-
-### 16d. Uji Setiap URL
-
-Buka pelayar web dan uji URL berikut satu per satu:
-
-| # | URL | Jangkaan |
-|---|-----|----------|
-| 1 | `http://localhost:8000/` | Dialihkan ke senarai pembayar |
-| 2 | `http://localhost:8000/pembayar` | Senarai 10 pembayar dengan jadual, carian, dan paginasi |
-| 3 | `http://localhost:8000/pembayar/create` | Borang daftar pembayar baru dengan 7 medan |
-| 4 | `http://localhost:8000/pembayar/1` | Butiran pembayar pertama (Ahmad bin Abdullah) |
-| 5 | `http://localhost:8000/pembayar/1/edit` | Borang kemaskini dengan data sedia ada diisi |
-| 6 | `http://localhost:8000/semak` | Halaman semakan sistem (versi PHP, Laravel, pangkalan data) |
-| 7 | `http://localhost:8000/maklumat/laluan` | Jadual semua laluan berdaftar dengan warna kaedah |
-| 8 | `http://localhost:8000/admin/dashboard` | Dashboard pentadbir dengan kiraan pembayar |
-| 9 | `http://localhost:8000/halaman-tiada` | Halaman ralat 404 tersuai |
-
-### 16e. Uji Operasi CRUD
-
-1. **Cipta:** Pergi ke `/pembayar/create`, isi borang, dan klik "Simpan". Pastikan mesej kejayaan muncul.
-2. **Baca:** Klik "Lihat" pada mana-mana pembayar. Pastikan no IC berformat sengkang dan pendapatan berformat RM.
-3. **Kemaskini:** Klik "Kemaskini", ubah data, dan klik "Kemaskini". Pastikan data dikemaskini.
-4. **Padam:** Klik "Padam" dan sahkan. Pastikan pembayar dipadam dan mesej kejayaan muncul.
-
-### 16f. Uji Carian
-
-Pada halaman senarai pembayar (`/pembayar`):
-1. Taip `Ahmad` dalam kotak carian dan klik "Cari". Hanya pembayar bernama Ahmad sepatutnya dipaparkan.
-2. Taip `850101` dan cari. Pembayar dengan no IC bermula `850101` sepatutnya dijumpai.
-3. Klik "Padam Carian" untuk melihat semula semua pembayar.
-
-### 16g. Uji Pengesahan Borang
-
-Cuba hantar borang pendaftaran baru dengan medan kosong:
-1. Pergi ke `/pembayar/create`.
-2. Klik "Simpan" tanpa mengisi apa-apa.
-3. Mesej ralat sepatutnya muncul di bawah setiap medan wajib ("Sila masukkan nama penuh.", dll.).
-4. Cuba masukkan no IC kurang daripada 12 digit -- mesej "No. KP mestilah 12 digit." sepatutnya muncul.
-
-### 16h. Semak Fail Log
-
-Selepas mengakses beberapa halaman Pembayar, semak fail log akses:
-
-```bash
-cat storage/logs/akses.log
-```
-
-Anda sepatutnya melihat entri log seperti ini:
-
-```
-[2024-01-15 10:30:45] local.INFO: Akses masuk {"kaedah":"GET","url":"http://localhost:8000/pembayar","ip":"127.0.0.1","masa":"2024-01-15 10:30:45"}
-[2024-01-15 10:30:52] local.INFO: Akses masuk {"kaedah":"GET","url":"http://localhost:8000/pembayar/1","ip":"127.0.0.1","masa":"2024-01-15 10:30:52"}
-```
-
-Perhatikan bahawa hanya laluan yang menggunakan middleware `log.akses` yang direkodkan (laluan Pembayar dan Admin Dashboard). Laluan `/semak` dan `/maklumat/laluan` tidak direkodkan kerana ia tidak menggunakan middleware tersebut.
-
-### 16i. Uji Skop dan Aksesor dalam Tinker
-
-Laravel Tinker membolehkan anda menjalankan kod PHP secara interaktif:
+Ini adalah langkah paling penting untuk memahami hubungan model. Buka tinker dan cuba setiap arahan satu demi satu.
 
 ```bash
 php artisan tinker
 ```
 
-Cuba arahan berikut dalam Tinker:
+#### Uji 1: hasMany — Pembayar ke Pembayaran
 
 ```php
-// Uji skop carian
-Pembayar::carian('Ahmad')->get();
+$pembayar = \App\Models\Pembayar::find(1);
+echo $pembayar->nama;
+// => "Ahmad bin Abdullah"
 
-// Uji aksesor ic_format
-$p = Pembayar::first();
-$p->ic_format;        // "850101-14-5678"
-$p->pendapatan_format; // "RM 4,500.00"
+echo $pembayar->pembayarans->count();
+// => 3
 
-// Kira jumlah pembayar
-Pembayar::count(); // 10
-
-// Cari pembayar tanpa e-mel
-Pembayar::whereNull('email')->get();
+$pembayar->pembayarans->pluck('no_resit');
+// => ["ZK-2024-0001", "ZK-2024-0002", "ZK-2024-0003"]
 ```
 
-### 16j. Senarai Laluan melalui Artisan
+#### Uji 2: belongsTo — Pembayaran ke Pembayar & JenisZakat
 
-Anda juga boleh melihat senarai laluan melalui terminal:
+```php
+$pembayaran = \App\Models\Pembayaran::find(1);
+echo $pembayaran->pembayar->nama;
+// => "Ahmad bin Abdullah"
 
-```bash
-php artisan route:list
+echo $pembayaran->jenisZakat->nama;
+// => "Zakat Fitrah"
 ```
 
-Output akan menunjukkan semua laluan yang didaftarkan, termasuk kaedah HTTP, URI, nama, pengawal, dan middleware yang digunakan.
+#### Uji 3: Aksesor jumlah_bayaran
+
+```php
+$pembayar = \App\Models\Pembayar::find(1);
+echo $pembayar->jumlah_bayaran;
+// => 1357.0 (hanya pembayaran berstatus 'sah')
+```
+
+#### Uji 4: doesntHave — Pembayar tanpa pembayaran
+
+```php
+\App\Models\Pembayar::doesntHave('pembayarans')->pluck('nama');
+// => ["Nor Azizah binti Ibrahim", "Razak bin Che Mat"]
+```
+
+#### Uji 5: withCount — Bilangan pembayaran
+
+```php
+\App\Models\Pembayar::withCount('pembayarans')
+    ->orderByDesc('pembayarans_count')
+    ->get()
+    ->each(fn($p) => print("$p->nama: $p->pembayarans_count\n"));
+```
+
+#### Uji 6: Jenis zakat paling popular
+
+```php
+\App\Models\JenisZakat::withCount('pembayarans')
+    ->orderByDesc('pembayarans_count')
+    ->get()
+    ->each(fn($j) => print("$j->nama: $j->pembayarans_count\n"));
+```
+
+#### Uji 7: Jumlah kutipan per jenis zakat
+
+```php
+\App\Models\JenisZakat::withSum('pembayarans', 'jumlah')
+    ->get()
+    ->each(fn($j) => print("$j->nama: RM " . number_format($j->pembayarans_sum_jumlah, 2) . "\n"));
+```
 
 ---
 
-## Struktur Fail Akhir Hari 2
+### Langkah 16: Uji Aplikasi
+
+Mulakan pelayan pembangunan:
+
+```bash
+php artisan serve
+```
+
+#### Jadual Ujian URL
+
+| # | URL | Jangkaan | Hubungan Model? |
+|---|-----|----------|----------------|
+| 1 | `http://localhost:8000/` | Redirect ke senarai pembayar | - |
+| 2 | `http://localhost:8000/pembayar` | Senarai 10 pembayar dalam jadual | - |
+| 3 | `http://localhost:8000/pembayar?carian=Ahmad` | Hanya pembayar bernama Ahmad | Skop `carian` |
+| 4 | `http://localhost:8000/pembayar/1` | Maklumat Ahmad + **senarai 3 pembayaran** | `hasMany`, `belongsTo` |
+| 5 | `http://localhost:8000/pembayar/4` | Maklumat Nor Azizah + **"Tiada rekod pembayaran"** | `hasMany` (kosong) |
+| 6 | `http://localhost:8000/pembayar/create` | Borang daftar pembayar baru | - |
+| 7 | `http://localhost:8000/pembayar/1/edit` | Borang kemaskini Ahmad | - |
+| 8 | `http://localhost:8000/semak` | Semakan sistem (PHP, Laravel, DB) | - |
+| 9 | `http://localhost:8000/maklumat/laluan` | Senarai semua laluan berdaftar | - |
+
+**Perkara untuk diperhatikan semasa ujian:**
+
+1. **Halaman `pembayar/1`** (Ahmad) — Di bahagian bawah maklumat peribadi, anda akan nampak jadual **Senarai Pembayaran** dengan 3 rekod. Setiap rekod memaparkan jenis zakat (dari hubungan `belongsTo`), jumlah, tarikh, cara bayar, dan status berwarna.
+2. **Halaman `pembayar/4`** (Nor Azizah) — Jadual pembayaran akan papar mesej **"Tiada rekod pembayaran"** kerana pembayar ini tiada dalam data seeder pembayaran.
+3. **Jumlah Bayaran Sah** — Ditunjukkan dalam maklumat pembayar. Untuk Ahmad: RM 1,357.00 (hanya pembayaran berstatus `sah` dikira, bukan yang `pending`).
+
+---
+
+## Struktur Fail
 
 ```
-sistem-zakat/
+contoh/hari-2/
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Controller.php
-│   │   │   ├── MaklumatController.php       ← baharu
-│   │   │   ├── PembayarController.php       ← baharu (7 kaedah CRUD)
-│   │   │   └── SemakController.php          ← baharu
+│   │   │   ├── MaklumatController.php
+│   │   │   ├── PembayarController.php          ← CRUD + eager loading hubungan
+│   │   │   └── SemakController.php
 │   │   └── Middleware/
-│   │       ├── LogAkses.php                 ← baharu
-│   │       └── SemakWaktuPejabat.php        ← baharu
+│   │       ├── LogAkses.php
+│   │       └── SemakWaktuPejabat.php
 │   ├── Models/
-│   │   ├── Pembayar.php                     ← baharu (skop + aksesor)
+│   │   ├── JenisZakat.php                      ← BARU: hasMany Pembayaran, scopeAktif
+│   │   ├── Pembayar.php                        ← DIKEMASKINI: + hasMany Pembayaran, jumlah_bayaran
+│   │   ├── Pembayaran.php                      ← BARU: belongsTo Pembayar & JenisZakat, scopeSah
 │   │   └── User.php
 │   └── Providers/
 │       └── AppServiceProvider.php
 ├── bootstrap/
-│   └── app.php                              ← dikemaskini (alias middleware)
+│   └── app.php                                 ← Daftar middleware alias
 ├── config/
-│   └── logging.php                          ← dikemaskini (saluran 'akses')
+│   └── ...
 ├── database/
 │   ├── migrations/
-│   │   └── 2024_01_01_000001_create_pembayars_table.php  ← baharu
+│   │   ├── 0001_01_01_000000_create_users_table.php
+│   │   ├── 0001_01_01_000001_create_cache_table.php
+│   │   ├── 0001_01_01_000002_create_jobs_table.php
+│   │   ├── 2024_01_01_000001_create_pembayars_table.php
+│   │   ├── 2024_01_01_000002_create_jenis_zakats_table.php    ← BARU
+│   │   └── 2024_01_01_000003_create_pembayarans_table.php    ← BARU
 │   └── seeders/
-│       ├── DatabaseSeeder.php               ← dikemaskini
-│       └── PembayarSeeder.php               ← baharu (10 rekod)
+│       ├── DatabaseSeeder.php                  ← DIKEMASKINI: panggil 3 seeder
+│       ├── JenisZakatSeeder.php                ← BARU: 5 jenis zakat
+│       ├── PembayarSeeder.php                  ← 10 pembayar
+│       └── PembayaranSeeder.php                ← BARU: 20 pembayaran
 ├── resources/
 │   └── views/
 │       ├── layouts/
-│       │   └── app.blade.php                ← baharu (susun atur utama)
+│       │   └── app.blade.php                   ← Layout utama dengan nav dan footer
 │       ├── pembayar/
-│       │   ├── index.blade.php              ← baharu (senarai + carian)
-│       │   ├── create.blade.php             ← baharu (borang daftar)
-│       │   ├── show.blade.php               ← baharu (butiran)
-│       │   └── edit.blade.php               ← baharu (borang kemaskini)
+│       │   ├── index.blade.php                 ← Senarai + carian + pagination
+│       │   ├── create.blade.php                ← Borang daftar baru
+│       │   ├── show.blade.php                  ← DIKEMASKINI: + senarai pembayaran
+│       │   └── edit.blade.php                  ← Borang kemaskini
 │       ├── maklumat/
-│       │   └── laluan.blade.php             ← baharu (senarai laluan)
+│       │   └── laluan.blade.php                ← Senarai laluan berdaftar
+│       ├── errors/
+│       │   ├── luar-waktu.blade.php            ← Halaman luar waktu pejabat
+│       │   ├── 403.blade.php
+│       │   └── 404.blade.php
 │       ├── admin/
-│       │   └── dashboard.blade.php          ← baharu (dashboard)
-│       ├── semak.blade.php                  ← baharu (semakan sistem)
-│       └── errors/
-│           ├── luar-waktu.blade.php         ← baharu (middleware)
-│           ├── 404.blade.php                ← baharu (tidak dijumpai)
-│           └── 403.blade.php                ← baharu (akses ditolak)
+│       │   └── dashboard.blade.php
+│       ├── semak.blade.php                     ← Semakan sistem
+│       └── welcome.blade.php
 ├── routes/
-│   └── web.php                              ← dikemaskini (semua laluan)
-└── storage/
-    └── logs/
-        └── akses.log                        ← dijana automatik oleh middleware
+│   └── web.php                                 ← Semua laluan aplikasi
+├── .env.example
+├── composer.json
+└── README.md                                   ← Fail ini
 ```
 
 ---
 
-## Rumusan Hari 2
+## Rumusan
 
-Pada hari ini, kita telah belajar dan membina komponen-komponen berikut:
+### Apa yang dipelajari hari ini
 
-1. **Model & Migrasi Pembayar** -- Mencipta model `Pembayar` dengan migrasi untuk jadual `pembayars`. Jadual ini mengandungi medan nama, no IC (unik), alamat, no telefon, e-mel, pekerjaan, dan pendapatan bulanan.
+| Topik | Apa yang dipelajari |
+|-------|-------------------|
+| **Model** | Cipta 3 model (`Pembayar`, `JenisZakat`, `Pembayaran`) dengan `$fillable`, `$casts`, skop tempatan, dan aksesor |
+| **Hubungan Model** | `hasMany` (satu-ke-banyak), `belongsTo` (banyak-ke-satu), eager loading (`with`, `load`), `withCount`, `withSum`, `has`, `doesntHave`, `whereHas` |
+| **Migrasi** | Cipta jadual dengan pelbagai jenis lajur, kunci asing (`foreignId`), `cascadeOnDelete`, `enum`, `unique`, `nullable`, `default` |
+| **Seeder** | Masukkan data contoh — 10 pembayar, 5 jenis zakat, 20 pembayaran dengan pelbagai status |
+| **Pengawal** | Resource controller (7 kaedah CRUD), controller biasa, eager loading dalam controller |
+| **Penghalaan** | `Route::resource`, `Route::get`, kumpulan laluan, prefix, named routes, middleware pada laluan |
+| **Middleware** | `LogAkses` (log setiap permintaan), `SemakWaktuPejabat` (hadkan akses mengikut waktu), pendaftaran alias |
+| **Paparan Blade** | Layout dengan `@yield`/`@section`, CRUD views, `@forelse`, `@error`, `@csrf`, `@method`, hubungan dalam Blade |
 
-2. **Skop & Aksesor** -- Menambah `scopeCarian` untuk carian mengikut nama atau no IC, aksesor `ic_format` untuk memformat no IC dengan sengkang, dan aksesor `pendapatan_format` untuk memformat pendapatan dengan simbol RM.
+### Peta hubungan lengkap
 
-3. **Pengawal Sumber (Resource Controller)** -- Mencipta `PembayarController` dengan 7 kaedah CRUD lengkap: `index` (senarai dengan carian dan paginasi), `create` (borang baru), `store` (simpan dengan pengesahan), `show` (butiran), `edit` (borang kemaskini), `update` (kemaskini dengan pengesahan), dan `destroy` (padam dengan pengesahan).
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Sistem Pengurusan Zakat                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Pembayar ──── hasMany ────► Pembayaran ◄──── hasMany ──── JenisZakat
+│     │                           │   │                        │
+│     │  getJumlahBayaran         │   │  getJumlahFormat       │
+│     │  scopeCarian              │   │  scopeSah              │
+│     │  getIcFormat              │   │                        │
+│     │  getPendapatanFormat      │   │  belongsTo Pembayar    │
+│     │                           │   │  belongsTo JenisZakat  │
+│     │  pembayarans()            │   │  pembayar()            │
+│     │                           │   │  jenisZakat()          │
+│                                 │                     scopeAktif
+│                                 │                     pembayarans()
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-4. **Seeder** -- Mencipta `PembayarSeeder` dengan 10 rekod contoh untuk pengujian, termasuk kes ujian untuk medan pilihan yang `null`.
+### Arahan Artisan yang digunakan
 
-5. **Middleware LogAkses** -- Merekod setiap permintaan HTTP ke fail log berasingan (`storage/logs/akses.log`) termasuk kaedah, URL, IP, dan masa.
+```bash
+# ─── Model & Migrasi ───
+php artisan make:model Pembayar -m
+php artisan make:model JenisZakat -m
+php artisan make:model Pembayaran -m
 
-6. **Middleware SemakWaktuPejabat** -- Menyekat akses di luar waktu pejabat (Isnin-Jumaat, 8:00 pagi - 5:00 petang) dengan halaman ralat tersuai.
+# ─── Pengawal ───
+php artisan make:controller PembayarController --resource
+php artisan make:controller SemakController
+php artisan make:controller MaklumatController
 
-7. **Pendaftaran Middleware** -- Mendaftarkan alias middleware dalam `bootstrap/app.php` menggunakan cara Laravel 11+ (`$middleware->alias([...])`) sebagai pengganti `app/Http/Kernel.php`.
+# ─── Middleware ───
+php artisan make:middleware LogAkses
+php artisan make:middleware SemakWaktuPejabat
 
-8. **Pengawal Tambahan** -- `SemakController` untuk halaman semakan sistem (versi PHP, Laravel, status pangkalan data) dan `MaklumatController` untuk memaparkan senarai laluan berdaftar.
+# ─── Seeder ───
+php artisan make:seeder PembayarSeeder
+php artisan make:seeder JenisZakatSeeder
+php artisan make:seeder PembayaranSeeder
 
-9. **Kumpulan Laluan** -- Menggunakan `Route::middleware()` untuk mengelompokkan laluan dengan middleware, `Route::prefix()` untuk menambah awalan URL, `Route::name()` untuk menambah awalan nama, dan `Route::resource()` untuk menjana 7 laluan CRUD secara automatik.
+# ─── Jalankan ───
+php artisan migrate --seed
+php artisan migrate:fresh --seed
+php artisan tinker
+php artisan serve
+```
 
-10. **Susun Atur Blade (Layout)** -- Mencipta susun atur utama `layouts/app.blade.php` dengan bar navigasi, mesej kilat, dan kaki halaman. Menggunakan `@yield` dan `@section` untuk warisan templat.
+### Seterusnya (Hari 3)
 
-11. **Paparan CRUD Lengkap** -- Empat paparan Blade untuk operasi CRUD: senarai dengan carian dan paginasi, borang pendaftaran dengan pengesahan, halaman butiran dengan aksesor, dan borang kemaskini dengan data pra-isian.
-
-12. **Halaman Ralat Tersuai** -- Tiga halaman ralat: luar waktu pejabat (digunakan oleh middleware), 404 (halaman tidak dijumpai), dan 403 (akses ditolak).
-
-Esok pada **Hari 3**, kita akan mendalami Blade templat, hubungan Eloquent (relationships), migrasi untuk `JenisZakat` dan `Pembayaran`, serta pengesahan borang (validation) yang lebih mendalam.
+Pada Hari 3, kita akan memperdalam lagi topik Blade templates, Eloquent models, migrasi lanjutan, dan validasi data. Kita akan membina paparan yang lebih lengkap termasuk borang pembayaran yang menggunakan hubungan model untuk dropdown jenis zakat, serta mempelajari teknik validasi lanjutan dalam Laravel.

@@ -68,6 +68,9 @@ class PembayarController extends Controller
      */
     public function show(Pembayar $pembayar)
     {
+        // Eager load pembayaran beserta jenis zakat — elak masalah N+1
+        $pembayar->load('pembayarans.jenisZakat');
+
         return view('pembayar.show', compact('pembayar'));
     }
 
